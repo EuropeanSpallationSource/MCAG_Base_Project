@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.0.25">
+  <DUT Name="DUT_ComSettings" Id="{491a336a-2102-4226-b9b7-ff1bb139059a}">
+    <Declaration><![CDATA[TYPE DUT_ComSettings :
+STRUCT
+	nConnectionIndex:UDINT:=0;
+	nADSPort:INT:=851;
+	bReturnData:BOOL:=FALSE;
+	bReturnVarName:BOOL:=FALSE;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+    <ObjectProperties />
+  </DUT>
+</TcPlcObject>

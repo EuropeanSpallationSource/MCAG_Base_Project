@@ -9,6 +9,7 @@ README.md text
 *.TcGVL text eol=crlf
 *.TcPOU text eol=crlf
 *.TcTTO text eol=crlf
+*.tmc   text eol=crlf
 *.tsproj text eol=crlf
 *.plcProj text eol=crlf
 *.plcproj text eol=crlf

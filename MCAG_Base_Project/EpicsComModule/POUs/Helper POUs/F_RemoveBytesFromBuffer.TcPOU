@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.0.25">
+  <POU Name="F_RemoveBytesFromBuffer" Id="{b149f154-8770-47a1-86d3-0a857dd6fee6}">
+    <Declaration><![CDATA[FUNCTION F_RemoveBytesFromBuffer : BOOL
+VAR
+	sVersion: STRING:='0.9.0';
+END_VAR
+VAR_INPUT	
+	nRemoveBytes:UDINT:=0;
+END_VAR
+VAR_IN_OUT
+	byteCommandBuffer	:	ARRAY[0..PLCPRJ_BUFFER_SIZE] OF BYTE;//ADS input buffer
+	nBytesInCommandBuffer:DINT:=0;
+	nIndexEndOfCommand:DINT:=0;
+END_VAR
+
+
+VAR
+	nCommandEndIndex: DINT;
+	bRet: BOOL;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//Remove ADS command from buffer
+bRet:=FALSE;
+IF nRemoveBytes>0 AND (nRemoveBytes< PLCPRJ_BUFFER_SIZE-nRemoveBytes) THEN 
+	MEMMOVE(srcAddr:=ADR(byteCommandBuffer[nRemoveBytes]),destAddr:=ADR(byteCommandBuffer[0]),n:= nBytesInCommandBuffer-nRemoveBytes); //remove ADSPORT command from buffer
+	MEMSET(destAddr:=ADR(byteCommandBuffer[nBytesInCommandBuffer-nRemoveBytes]),fillByte:=0,n:=nRemoveBytes); //reset buffer
+	nBytesInCommandBuffer:=nBytesInCommandBuffer-nRemoveBytes;
+	nIndexEndOfCommand:=nIndexEndOfCommand-nRemoveBytes;	
+	bRet:=TRUE;
+END_IF
+F_RemoveBytesFromBuffer:=bREt;
+RETURN;
+	]]></ST>
+    </Implementation>
+    <ObjectProperties />
+  </POU>
+</TcPlcObject>

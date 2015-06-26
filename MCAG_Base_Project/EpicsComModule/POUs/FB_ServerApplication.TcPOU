@@ -1,0 +1,603 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.0.25">
+  <POU Name="FB_ServerApplication" Id="{61c4cd1a-935d-4e48-8b22-86efe89dfec1}">
+    <Declaration><![CDATA[///#########################################################
+///FB that handles one EPICS connection of TCP/IP.
+/// The main functionallity of this function block is to parse commands from EPICS or other serial device.
+///
+///	Library:		
+///	
+///
+///	Global Variables:
+///	- EPICS_MAX_FRAME_SIZE					
+///	- EPICS_ARRAY_DELIMITER					
+///	- EPICS_COMMAND_DELIMITER
+/// - PLCPRJ_BUFFER_SIZE				 
+///
+///	Data types:
+///	
+///	External functions:
+///		- TC2_Standard lib
+///		- Tc2_Utilities lib
+///		- Tc2_System lib
+///		
+///###########################################################
+FUNCTION_BLOCK FB_ServerApplication
+VAR
+	sVersion: STRING:='0.9.0';
+	sFeatures: STRING:='stv1';
+END_VAR
+VAR_IN_OUT
+	fbTx 		: FB_FrameFifo;(* TX fifo *)
+	fbRx 		: FB_FrameFifo;(* RX fifo *)
+	fbLog		: FB_LogFifo;(* Log message fifo *)	
+END_VAR
+
+VAR_INPUT
+	nConnectionIndex:UDINT:=0;
+	bReset: BOOL;
+END_VAR
+
+VAR	
+	//Settings	
+	nADSPort							: UINT:=851;				
+	nState								:INT:=0;
+	
+	bExecuteWriteBufferToEPICS:BOOL:=FALSE;
+	bInStaticSection:BOOL:=FALSE;
+	bReadCmd: BOOL:=FALSE;
+	bWriteCmd: BOOL:=FALSE;
+	bStaticGetADRCommand	: 	BOOL:=FALSE;
+	bStaticTHISCommand		:	BOOL:=FALSE;
+	
+	//FB:s	
+	fbAdsReadValue: Tc2_System.ADSREAD;
+	fbAdsWriteValue: Tc2_System.ADSWRITE;
+	fbParseADSBufferToStream:FB_ADSBufferToStreamBuffer;
+	fbParseStreamBufferToADS:FB_StreamBufferToADSBuffer;
+	fbStateTimoutTimer:TON; 
+	fbSymInfoByName:Tc2_Utilities.PLC_ReadSymInfoByName;
+	fbValidCommand:FB_ValidCommand;
+	fbParseCommandOption:FB_ParseCommandOption;	
+	fbParseStringToSymInfo: FB_ParseStringToSymInfo;
+	stSettings: DUT_ComSettings;
+	fbFincChar: FB_FindChar;
+	//buffers		
+	byteADSBuffer		: ARRAY[0..PLCPRJ_BUFFER_SIZE] OF BYTE;
+	byteCommandBuffer	: ARRAY[0..PLCPRJ_BUFFER_SIZE] OF BYTE; (* Byte buffer*)
+	byteFrameBuffer		: ARRAY[0..EPICS_MAX_FRAME_SIZE] OF BYTE;
+		
+	//Strings
+	sTemp: STRING;
+	sAckString: STRING;
+	psCommandBufferString: POINTER TO STRING; //string to point into byte buffer
+	sVariableName: STRING;
+	
+	//Ints
+	nBytesInCommandBuffer:DINT;
+	nADSBytesToRead: DINT;
+	nIndexEndOfCommand: DINT;	
+	nIndex1:INT:=0;
+	nLength: INT;
+	
+	//Error handling
+	sComBufferAtError: STRING;
+	sError: STRING(255);
+	sSubErrorString:STRING(255);
+	bErrorMessageSent: BOOL:=FALSE;
+	bErrorOld: BOOL;
+	nErrorCounter: INT;
+	stSymInfo:SYMINFOSTRUCT;
+	nStatricCommandCounter: INT;	
+	sGetStaticADR:STRING(255):='';
+	iEmptyCounter: INT;
+	nFrameBufferIndex: INT;
+	nCleanBytes: DINT;
+	sVariableName_THIS: STRING(INT#255);
+	sVarName: STRING(INT#255);
+	nLengthSubString: INT;	
+END_VAR
+
+VAR_OUTPUT
+	nErrorId: UDINT;
+	bError: BOOL;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+
+//Typical command string: "ADSPORT=851/Main.M1.fPosition=100;ADSPORT=852/Main.iCounter?;linefeed"
+
+psCommandBufferString :=ADR(byteCommandBuffer[0]); //Used for debugging to see byte buffer as string
+stSettings.nConnectionIndex:=nConnectionIndex;
+
+//State 1: Get new info from recieve buffer. Wait for complete command = ";"
+IF nState=0 THEN //Only get new data from buffer if free mem
+	fbRx.RemoveHead(bGet := ADR(byteCommandBuffer[nBytesInCommandBuffer]), nReadBufferSize:=SIZEOF(byteCommandBuffer)-nBytesInCommandBuffer);(* Fetch string from rx fifo *)		
+	IF fbRx.bOk THEN(* Success *)												
+		nBytesInCommandBuffer:=nBytesInCommandBuffer+DINT_TO_INT(fbRx.nReadCount); //Seems buffer always returns one byte less thann count?
+		//fbLog.Error( sMessage := concat(str1:='State 1a: ', str2:=PSTRING_TO_STRING(psCommandBufferString)), nErrID := nBytesInCommandBuffer );		
+	END_IF
+END_IF
+
+IF 	nBytesInCommandBuffer>0 AND NOT (nState=1) THEN 
+	fbValidCommand(nBytesInCommandBuffer:=nBytesInCommandBuffer,pbCommandBuffer:=ADR(byteCommandBuffer));
+	//fbLog.Error( sMessage := concat(str1:='State 1b: ', str2:=PSTRING_TO_STRING(psCommandBufferString)), nErrID := nBytesInCommandBuffer );			
+	IF  fbValidCommand.bValid THEN	
+		nIndexEndOfCommand:=fbValidCommand.nIndexEndOfCommand;						
+		nState:=1;					
+	END_IF	
+END_IF
+			
+//State 2: Check for Command Options
+IF (nState=1) THEN
+	//Reset defaults
+	nADSPort:=stSettings.nADSPort;	
+	nStatricCommandCounter:=0;
+	bInStaticSection:=TRUE;
+	REPEAT 
+		nStatricCommandCounter:=nStatricCommandCounter+1;					
+		nIndex1:=find(STR1:=PSTRING_TO_STRING(psCommandBufferString),STR2:=EPICS_COMMAND_OPTION_DELIMITER);		
+		
+		IF nIndex1>0 AND nIndex1<=nIndexEndOfCommand THEN	
+			fbParseCommandOption(nCommandEndIndex:=nIndex1,byteCommandBuffer:=byteCommandBuffer,nBytesInCommandBuffer:=nBytesInCommandBuffer,nIndexEndOfCommand:=nIndexEndOfCommand);
+			IF NOT fbParseCommandOption.bError THEN
+				IF len(fbParseCommandOption.sStaticCommand)>0 THEN				
+					//*****EPICS_COMMAND_OPTION_ADSPORT
+					IF find(STR1:=fbParseCommandOption.sStaticCommand,STR2:=EPICS_COMMAND_OPTION_ADSPORT)>0 THEN
+						IF fbParseCommandOption.bWriteCommand THEN												
+							nADSPort:=STRING_TO_UINT(fbParseCommandOption.sStaticValue);																							
+						END_IF							
+					END_IF										
+				END_IF		
+			ELSE
+				bError:=fbParseCommandOption.bError;
+				sSubErrorString:=fbParseCommandOption.sSubErrorString;
+				nErrorId:=fbParseCommandOption.nErrorId;			
+			END_IF																																																	
+		ELSE
+			bInStaticSection:=FALSE;	
+		END_IF				
+	UNTIL nBytesInCommandBuffer<1 OR (NOT bInStaticSection) OR bError OR nStatricCommandCounter>EPICS_MAX_STACKED_STATIC_COMMANDS OR nIndex1=0
+	END_REPEAT
+	IF NOT bError THEN		
+		nState:=2;		
+	END_IF
+	//fbLog.Error( sMessage := concat(str1:='State 2: ', str2:=PSTRING_TO_STRING(psCommandBufferString)), nErrID := nBytesInCommandBuffer );	
+END_IF
+
+//State 3: Check if Static Commands
+IF (nState=2) THEN	
+	bStaticTHISCommand:=FALSE;
+	bStaticGetADRCommand:=FALSE;
+	nIndex1:=find(STR1:=PSTRING_TO_STRING(psCommandBufferString),STR2:=EPICS_STATIC_COMMAND_TRIGGER);
+	IF (nIndex1=1) THEN	
+		 //Command EPICS_STATIC_COMMAND_THIS = "#THIS."
+		nIndex1:=find(STR1:=PSTRING_TO_STRING(psCommandBufferString),STR2:=EPICS_STATIC_COMMAND_THIS);				
+		IF (nIndex1=2) THEN   //Command should be = "#THIS."			
+			//=
+			nIndex1:=find(STR1:=PSTRING_TO_STRING(psCommandBufferString),STR2:=EPICS_WRITE_CMD);		//=
+			IF nIndex1<1 OR nIndex1 > nIndexEndOfCommand THEN					
+				nIndex1:=find(STR1:=PSTRING_TO_STRING(psCommandBufferString),STR2:=EPICS_READ_CMD);	//?						
+			END_IF
+			//Remove static commands and build variable name to this fb. (this.stSettings.nPort=>Main.fbServer.aApplications[nConnectionIndex].stSettings.nPort)
+			stemp:=left(str:=PSTRING_TO_STRING(psCommandBufferString),SIZE:=nIndex1-1);
+			stemp:=right(str:=sTemp,size:=len(sTemp)-(len(EPICS_STATIC_COMMAND_TRIGGER)+len(EPICS_STATIC_COMMAND_THIS)));
+			sVariableName_THIS:=concat(STR1:=EPICS_STATIC_COMMAND_THIS_PATH,STR2:='[');
+			sVariableName_THIS:=concat(STR1:=sVariableName_THIS,STR2:=UDINT_TO_STRING(nConnectionIndex));
+			sVariableName_THIS:=concat(STR1:=sVariableName_THIS,STR2:='].');
+			sVariableName_THIS:=concat(STR1:=sVariableName_THIS,STR2:=sTemp);
+			bStaticTHISCommand:=TRUE;
+			//Don't clean up this command. Will be done in subsequent steps			
+		ELSE
+			 //Command EPICS_STATIC_COMMAND_THIS = "#ADR."
+			nIndex1:=find(STR1:=PSTRING_TO_STRING(psCommandBufferString),STR2:=EPICS_STATIC_COMMAND_ADR);				
+			IF (nIndex1=2) THEN   //Command should be = "#ADR."	
+				//= write. Expect a command like:  "#ADR.1,1,1,1=200;"
+				nIndex1:=find(STR1:=PSTRING_TO_STRING(psCommandBufferString),STR2:=EPICS_WRITE_CMD);		//=
+				IF (nIndex1>0) AND ((nIndex1-1) < nIndexEndOfCommand) THEN	
+					bWriteCmd:=TRUE;
+				ELSE
+					//? read. Expect a command like:  "#ADR.1,1,1,1?;" => ask for value, or "#ADR.Main.M1.bEnable?;"=> ask for adress					
+					nIndex1:=find(STR1:=PSTRING_TO_STRING(psCommandBufferString),STR2:=EPICS_READ_CMD);		//? 
+					IF ((nIndex1>0) AND (nIndex1-1) < nIndexEndOfCommand) THEN
+						bReadCmd:=TRUE;											
+					END_IF	
+				END_IF
+				IF bReadCmd OR bWriteCmd THEN														
+					sVariableName:=left(str:=PSTRING_TO_STRING(psCommandBufferString),SIZE:=nIndex1-1);
+					sVariableName:=right(str:=sVariableName,size:=len(sVariableName)-(len(EPICS_STATIC_COMMAND_TRIGGER)+len(EPICS_STATIC_COMMAND_ADR)));
+					//Check if symbol or abs adress
+					nLengthSubString:=(len(EPICS_STATIC_COMMAND_ADR)+len(EPICS_STATIC_COMMAND_TRIGGER));		
+					fbFincChar(pbBuffer:=ADR(byteCommandBuffer[0]),nLength:=nIndex1,cFind:=EPICS_ASCII_DOT,nStartIndex:=nLengthSubString+2);																						 								
+					IF ((fbFincChar.nIndex>nLengthSubString) AND (fbFincChar.nIndex-1) <nIndexEndOfCommand) THEN
+						bStaticGetADRCommand:=TRUE;
+						nState:=4;  // return abs.-adress for symbolic adress
+					ELSE																							
+						fbParseStringToSymInfo(sAdress:=sVariableName);
+						IF NOT fbParseStringToSymInfo.bError THEN
+							stSymInfo:=fbParseStringToSymInfo.stSymInfo;																				
+							nState:=5;																				
+						ELSE							
+							bError:=fbParseStringToSymInfo.bError;
+							nErrorId:=fbParseStringToSymInfo.nErrorId;
+							sSubErrorString:=fbParseStringToSymInfo.sSubErrorString;
+						END_IF	
+					END_IF
+					IF NOT F_RemoveBytesFromBuffer(nIndex1,byteCommandBuffer:=byteCommandBuffer,nBytesInCommandBuffer:=nBytesInCommandBuffer,nIndexEndOfCommand:=nIndexEndOfCommand) THEN
+							bError:=TRUE;
+							nErrorId:=301;
+							sSubErrorString:='State 3: Failed to clear buffer (read).';
+					END_IF				
+				END_IF											
+			END_IF
+		END_IF						
+	END_IF
+	IF (NOT bError) AND (nState<3) THEN
+		nState:=3;
+	END_IF
+	//fbLog.Error( sMessage := concat(str1:='State 3: ', str2:=PSTRING_TO_STRING(psCommandBufferString)), nErrID := nBytesInCommandBuffer );	
+END_IF
+
+//State 4: Find symbolic variable name in cmd
+IF (nState=3) THEN
+	//check if read cmd	
+	bReadCmd:=FALSE;
+	bWriteCmd:=FALSE;
+	nIndex1:=find(STR1:=PSTRING_TO_STRING(psCommandBufferString),STR2:=EPICS_READ_CMD);			
+	IF nIndex1>0 AND nIndex1<= nIndexEndOfCommand THEN		
+		sVariableName:=left(STR:=PSTRING_TO_STRING(psCommandBufferString), SIZE:=nIndex1-1);
+		//Clear buffer
+		IF F_RemoveBytesFromBuffer(nIndex1,byteCommandBuffer:=byteCommandBuffer,nBytesInCommandBuffer:=nBytesInCommandBuffer,nIndexEndOfCommand:=nIndexEndOfCommand) THEN 
+			bReadCmd:=TRUE;
+		ELSE
+			bError:=TRUE;
+			nErrorId:=402;
+			sSubErrorString:='State 4: Failed to clear buffer (read).';	
+		END_IF
+	ELSE
+		nIndex1:=find(STR1:=PSTRING_TO_STRING(psCommandBufferString),STR2:=EPICS_WRITE_CMD);		
+		IF nIndex1>0 AND nIndex1<=nIndexEndOfCommand THEN
+			sVariableName:=left(STR:=PSTRING_TO_STRING(psCommandBufferString), SIZE:=nIndex1-1);
+			IF F_RemoveBytesFromBuffer(nIndex1,byteCommandBuffer:=byteCommandBuffer,nBytesInCommandBuffer:=nBytesInCommandBuffer,nIndexEndOfCommand:=nIndexEndOfCommand) THEN 
+				bWriteCmd:=TRUE;
+			ELSE
+				bError:=TRUE;
+				nErrorId:=403;
+				sSubErrorString:='State 4: Failed to clear buffer (write).';	
+			END_IF		
+		END_IF
+	END_IF
+	IF bWriteCmd OR bReadCmd THEN
+		nState:=4;
+	END_IF
+	IF NOT bError THEN	
+		IF NOT (nState=4) THEN
+			bError:=TRUE;
+			nErrorId:=401;
+			sSubErrorString:='State 4: No read or write command identified.';		
+		END_IF
+	END_IF;		
+	fbSymInfoByName(START:=FALSE);
+	//fbLog.Error( sMessage := concat(str1:='State 4: ', str2:=PSTRING_TO_STRING(psCommandBufferString)), nErrID := nBytesInCommandBuffer );	
+END_IF
+
+
+//State 5: Get symbolic information over ADS
+IF (nState=4) THEN	
+	//If static command "THIS" then use other variable name	
+	IF bStaticTHISCommand THEN
+		sVarName:=sVariableName_THIS;
+	ELSE
+		sVarName:=sVariableName;
+	END_IF
+	fbSymInfoByName( 
+			PORT:= nADSPort, 
+			SYMNAME:= sVarName, 
+			START:= TRUE,
+			TMOUT:=T#100MS);
+
+		(*Wait until it's done or if an error occurs*)
+		IF NOT fbSymInfoByName.ERR THEN
+			IF NOT fbSymInfoByName.BUSY THEN
+				nState:=5;
+				stSymInfo:=fbSymInfoByName.SYMINFO;
+				fbAdsReadValue(read:=FALSE);
+				IF bStaticGetADRCommand THEN // jump over next state and prepare information to be sent									
+					sGetStaticADR:='';
+					sGetStaticADR:=CONCAT(str1:=sGetStaticADR,str2:='16#');
+					sGetStaticADR:=CONCAT(str1:=sGetStaticADR,str2:=DWORD_TO_HEXSTR(stSymInfo.idxGroup,1,FALSE));
+					sGetStaticADR:=CONCAT(str1:=sGetStaticADR,str2:=EPICS_ARRAY_DELIMITER);
+					sGetStaticADR:=CONCAT(str1:=sGetStaticADR,str2:='16#');
+					sGetStaticADR:=CONCAT(str1:=sGetStaticADR,str2:=DWORD_TO_HEXSTR(stSymInfo.idxOffset,1,FALSE));
+					sGetStaticADR:=CONCAT(str1:=sGetStaticADR,str2:=EPICS_ARRAY_DELIMITER);				
+					sGetStaticADR:=CONCAT(str1:=sGetStaticADR,str2:=DINT_TO_STRING(stSymInfo.byteSize));
+					sGetStaticADR:=CONCAT(str1:=sGetStaticADR,str2:=EPICS_ARRAY_DELIMITER);				
+					sGetStaticADR:=CONCAT(str1:=sGetStaticADR,str2:=DINT_TO_STRING(stSymInfo.adsDataType));
+					nFrameBufferIndex:=len(sGetStaticADR);		
+					stSymInfo.byteSize:=len(str:=sGetStaticADR);		//Fake size 			
+					memcpy(destAddr:=ADR(byteADSBuffer[0]),srcAddr:=ADR(sGetStaticADR),n:=stSymInfo.byteSize);  //Copy to output buffer	
+					stSymInfo.adsDataType :=ADST_STRING; 				//Fake string
+ 					bReadCmd:=TRUE;										
+					nState:=8;											//Jump to state 9
+					bExecuteWriteBufferToEPICS:=TRUE;					//Execute write	directly size all info is prepared				
+				END_IF
+			END_IF
+		ELSE
+			bError:=TRUE;
+			nErrorId:=fbSymInfoByName.ERRID;
+			sSubErrorString:=concat(str1:='State 5: Failed to get symbolic information for variable:',STR2:=sVariableName);
+		END_IF;
+		//fbLog.Error( sMessage := concat(str1:='State 5: ', str2:=PSTRING_TO_STRING(psCommandBufferString)), nErrID := nBytesInCommandBuffer );	
+END_IF
+
+//State 6: Convert stream buffer to ADS buffer (WRITE)
+IF (nState=5) AND bWriteCmd THEN
+	//fbLog.Error( sMessage := concat(str1:='State 6: ', str2:=PSTRING_TO_STRING(psCommandBufferString)), nErrID := nBytesInCommandBuffer );
+	fbParseStreamBufferToADS(bExecute:=TRUE,symbolInfo:=stSymInfo,nBufferToParseLength:=nIndexEndOfCommand,fbLog:=fbLog,byteASCIIBufferToParse:=byteCommandBuffer,byteBinayBufferOutput:=byteADSBuffer);	
+	IF NOT fbParseStreamBufferToADS.bError  THEN
+		IF NOT fbParseStreamBufferToADS.bBusy THEN						
+			nCleanBytes:=fbParseStreamBufferToADS.nASCIIBytesParsed;
+			IF nCleanBytes>0 AND nCleanBytes+fbParseStreamBufferToADS.nASCIIBytesParsed < PLCPRJ_BUFFER_SIZE-255 THEN
+				F_RemoveBytesFromBuffer(nCleanBytes,byteCommandBuffer:=byteCommandBuffer,nBytesInCommandBuffer:=nBytesInCommandBuffer,nIndexEndOfCommand:=nIndexEndOfCommand);
+				fbAdsWriteValue(WRITE:=FALSE);
+				nState:=6;
+				fbParseStreamBufferToADS(bExecute:=FALSE,symbolInfo:=stSymInfo,nBufferToParseLength:=nIndexEndOfCommand,fbLog:=fbLog,byteASCIIBufferToParse:=byteCommandBuffer,byteBinayBufferOutput:=byteADSBuffer);	
+			ELSE			
+				bError:=TRUE;
+				nErrorID:=701;
+				sSubErrorString:='State 6: Buffer index out of range.';
+			END_IF
+		END_IF;
+	ELSE
+		bError:=TRUE;		
+		nErrorId:=fbParseStreamBufferToADS.nErrorId;
+		sSubErrorString:='State 6: Failed to parse ASCII buffer to ADS buffer.';
+	END_IF;
+		
+END_IF
+
+//State 7: Write ADS data
+IF (nState=6) THEN
+	IF stSymInfo.byteSize>=fbParseStreamBufferToADS.nBinaryBytesWritten THEN //Ensure right size of variable
+		fbAdsWriteValue(
+			PORT:= nADSPort, 
+			IDXGRP:= stSymInfo.idxGroup,		 
+			IDXOFFS:= stSymInfo.idxOffset, 
+			LEN:= fbParseStreamBufferToADS.nBinaryBytesWritten, 
+			SRCADDR:=ADR(byteADSBuffer[0]) , 
+			WRITE:= TRUE, 
+			TMOUT:= T#5S, 
+	 	);
+	 	IF NOT fbAdsWriteValue.ERR THEN
+			IF NOT fbAdsWriteValue.BUSY THEN
+				fbAdsWriteValue(Write:=FALSE);
+				nState:=7;
+			END_IF
+		ELSE
+			bError:=TRUE;
+			nErrorId:=fbAdsWriteValue.ERRID;
+			sSubErrorString:='State 7: Failed ADS write command.';
+		END_IF
+	ELSE
+			bError:=TRUE;
+			nErrorId:=711;
+			sSubErrorString:='State 7: Size missmatch between ASCII data and variable size.';					
+	END_IF	
+	//fbLog.Error( sMessage := concat(str1:='State 7: ', str2:=PSTRING_TO_STRING(psCommandBufferString)), nErrID := nBytesInCommandBuffer );	
+END_IF
+
+//State 8: Read data over ADS
+IF (((nState=5) AND bReadCmd) OR ((nState=7) AND bWriteCmd AND stSettings.bReturnData)) THEN
+	IF(stSymInfo.byteSize>PLCPRJ_BUFFER_SIZE-255) THEN 
+		nADSBytesToRead:=PLCPRJ_BUFFER_SIZE-255;
+	ELSE
+		nADSBytesToRead:=stSymInfo.byteSize;		
+	END_IF
+	fbAdsReadValue(
+		PORT:= nADSPort, 
+		IDXGRP:= stSymInfo.idxGroup,
+		IDXOFFS:=stSymInfo.idxOffset, 
+		LEN:= nADSBytesToRead, 
+		DESTADDR:=ADR(byteADSBuffer), 
+		Read:= TRUE, 
+		TMOUT:= T#100MS, 
+	 );
+	 
+	 IF NOT fbAdsReadValue.ERR THEN
+		IF NOT fbAdsReadValue.BUSY THEN			
+			fbAdsReadValue(READ:=FALSE);
+			bExecuteWriteBufferToEPICS:=TRUE;			
+			nState:=8;			
+		END_IF
+	ELSE
+		bError:=TRUE;
+		nErrorId:=fbAdsReadValue.ERRID;
+		sSubErrorString:='State 8: Failed ADS read command.';
+	END_IF;
+	//fbLog.Error( sMessage := concat(str1:='State 6a: ', str2:=PSTRING_TO_STRING(psCommandBufferString)), nErrID := nBytesInCommandBuffer );	
+END_IF
+
+//State 9: Parse stream and send to buffer if needed 
+fbParseADSBufferToStream(bExecute:=bExecuteWriteBufferToEPICS,symbolInfo:=stSymInfo,fbTx:=fbTx,fbLog:=fbLog,byteBufferToSend:=byteADSBuffer,bReturnVariableName:=stSettings.bReturnVarName, sVariableName:=sVariableName, byteFrameBuffer:=byteFrameBuffer,nFrameBufferIndex:=nFrameBufferIndex);						
+IF (nState=8) THEN
+	bExecuteWriteBufferToEPICS:=TRUE;
+	IF NOT fbParseADSBufferToStream.bError THEN
+		IF NOT fbParseADSBufferToStream.bBusy THEN	
+			nState:=9;	
+			bExecuteWriteBufferToEPICS:=FALSE;		
+		END_IF
+	ELSE
+		bError:=TRUE;
+		nErrorId:=fbParseADSBufferToStream.nErrorId;		
+		sSubErrorString:='State 9: Failed to parse ADS buffer to ASCII buffer.';
+	END_IF	
+	//fbLog.Error( sMessage := concat(str1:='State 6b: ', str2:=PSTRING_TO_STRING(psCommandBufferString)), nErrID := nBytesInCommandBuffer );	
+END_IF
+
+
+//State10: Send data to EPICS
+IF ((nState=9) OR ((nState=7) AND NOT stSettings.bReturnData AND bWriteCmd)) THEN	
+	IF bWriteCmd AND NOT stSettings.bReturnData THEN 
+		//Copy 'OK' sting to output buffer
+		nFrameBufferIndex:=len(STR:=EPICS_ACK_STRING);
+		memcpy(destAddr:=ADR(byteFrameBuffer[0]),srcAddr:=ADR(EPICS_ACK_STRING), nFrameBufferIndex);						
+	ELSIF bReadCmd OR stSettings.bReturnData THEN							
+		IF nFrameBufferIndex> EPICS_MAX_FRAME_SIZE-3 THEN  //must be space for atleast 3 bytes  (';crlf')
+			fbTx.AddTail( bPut := ADR(byteFrameBuffer[0]), nWriteCount:=nFrameBufferIndex );(* Put string to the tx fifo *)								
+			IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)			
+				bError:=TRUE;
+				nErrorId:=801;		
+				sSubErrorString:='State 7c: TX buffer overflow.';					 
+			END_IF		
+			nFrameBufferIndex:=0;	
+		END_IF											
+	END_IF;	
+	nCleanBytes:=0;
+	//check for semi-colon and add it to output buffer 	
+	IF(byteCommandBuffer[nIndexEndOfCommand]=F_ToASC(str:=EPICS_COMMAND_DELIMITER)) THEN //CR or LF
+		byteFrameBuffer[nFrameBufferIndex]:=byteCommandBuffer[nIndexEndOfCommand];
+		nFrameBufferIndex:=nFrameBufferIndex+1;
+		nCleanBytes:=nCleanBytes+1;					
+		IF(byteCommandBuffer[nIndexEndOfCommand+1]=EPICS_ASCII_LN OR byteCommandBuffer[nIndexEndOfCommand+1]=EPICS_ASCII_CR) THEN //CR or LF
+			byteFrameBuffer[nFrameBufferIndex]:=byteCommandBuffer[nIndexEndOfCommand+1];
+			nFrameBufferIndex:=nFrameBufferIndex+1;	
+			nCleanBytes:=nCleanBytes+1;				
+		END_IF;
+		IF(byteCommandBuffer[nIndexEndOfCommand+2]=EPICS_ASCII_LN OR byteCommandBuffer[nIndexEndOfCommand+2]=EPICS_ASCII_CR) THEN //CR or LF
+			byteFrameBuffer[nFrameBufferIndex]:=byteCommandBuffer[nIndexEndOfCommand+2];
+			nFrameBufferIndex:=nFrameBufferIndex+1;
+			nCleanBytes:=nCleanBytes+1;					
+		END_IF;
+						
+		//Send OK or data to output queue
+		fbTx.AddTail( bPut := ADR(byteFrameBuffer[0]), nWriteCount:=nFrameBufferIndex );(* Put string to the tx fifo *)								
+		IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)			
+			bError:=TRUE;
+			nErrorId:=802;		
+			sSubErrorString:='State 8: TX buffer overflow.';					 
+		ELSE
+			nState:=10;		
+		END_IF
+	ELSE
+			bError:=TRUE;
+			nErrorId:=803;		
+			sSubErrorString:='State 8: Semi-colon missing.';					 			
+	END_IF
+	//fbLog.Error( sMessage := concat(str1:='State : ', str2:=PSTRING_TO_STRING(psCommandBufferString)), nErrID := nBytesInCommandBuffer );	
+END_IF
+
+
+//State 11: Clean ";" and CR or LN from buffer, also see if extra zeros(=0) in buffer..
+IF (nState=10) THEN	
+	IF nCleanBytes>0 THEN
+		F_RemoveBytesFromBuffer(nCleanBytes,byteCommandBuffer:=byteCommandBuffer,nBytesInCommandBuffer:=nBytesInCommandBuffer,nIndexEndOfCommand:=nIndexEndOfCommand);			
+	END_IF;	
+	//Clean extra bytes/spaces Check if extra empty bytes
+	iEmptyCounter:=0;	
+	IF nBytesInCommandBuffer>0 THEN
+		WHILE byteCommandBuffer[iEmptyCounter]=0 AND iEmptyCounter<nBytesInCommandBuffer DO
+			iEmptyCounter:=iEmptyCounter+1;
+		END_WHILE
+		//remove bytes
+		F_RemoveBytesFromBuffer(iEmptyCounter,byteCommandBuffer:=byteCommandBuffer,nBytesInCommandBuffer:=nBytesInCommandBuffer,nIndexEndOfCommand:=nIndexEndOfCommand);
+	END_IF
+	
+	nState:=11;
+	//fbLog.Error( sMessage := concat(str1:='State 8: ', str2:=PSTRING_TO_STRING(psCommandBufferString)), nErrID := nBytesInCommandBuffer );	
+END_IF
+			
+// Command ready: Start over
+IF (nState=11) THEN					
+	nState:=0;
+	bReadCmd:=FALSE;
+	bWriteCmd:=FALSE;
+	nIndexEndOfCommand:=0;
+	bExecuteWriteBufferToEPICS:=FALSE;
+	//fbLog.Error( sMessage := concat(str1:='State 9: ', str2:=PSTRING_TO_STRING(psCommandBufferString)), nErrID := nBytesInCommandBuffer );	
+	IF nBytesInCommandBuffer<0 THEN
+		nBytesInCommandBuffer:=0;
+	END_IF
+	fbAdsReadValue(read:=FALSE);
+	fbAdsWriteValue(WRITE:=FALSE);
+	fbSymInfoByName(start:=FALSE);
+	
+END_IF
+
+//Ensure that communiucation not hangs du to stuck in one state
+
+fbStateTimoutTimer(In:=(nState>0 OR nBytesInCommandBuffer>0), PT:=EPICS_COM_TIMEOUT);
+IF fbStateTimoutTimer.Q THEN //latch in in which state stucked 
+		
+	nErrorID:=nState*10;
+	IF nBytesInCommandBuffer>0 THEN
+		nErrorID:=1;
+	END_IF
+	sSubErrorString:='State timout. To long time in one state.';		
+	bError:=TRUE;
+	//Latch buffer at error
+	MEMCPY(destAddr:=ADR(sComBufferAtError[0]),srcAddr:=ADR(byteCommandBuffer[0]),n:=255); //For debug purpose	
+	fbLog.Error( sMessage := 'State timeout', nErrID := nErrorID );
+	fbAdsReadValue(read:=FALSE);
+	fbAdsWriteValue(WRITE:=FALSE);
+	fbSymInfoByName(start:=FALSE);
+END_IF
+
+//Send error message to host
+IF bError AND NOT bErrorOld  THEN
+	nErrorCounter:=nErrorCounter+1;	
+	sError:=concat(str1:='Error ', STR2:=UDINT_TO_STRING(nErrorID));
+	sError:=CONCAT(str1:=sError , STR2:=' : ');
+	sError:=CONCAT(str1:=sError , STR2:=sSubErrorString);		
+	sError:=CONCAT(str1:=sError , STR2:='  ');
+	nLength:=len(STR:=sError);	
+	sError[nLength-2]:=EPICS_ASCII_COMMAND_DELIMITER;
+	sError[nLength-1]:=10; //LF	
+	fbLog.Error( sMessage := sError, nErrID := nErrorID );
+	fbTx.AddTail( bPut :=ADR(sError) , nWriteCount:=nLength);(* Put string to the tx fifo *)								
+	IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)			
+		bError:=TRUE;						
+		fbLog.Error( sMessage := 'TX overflow ', nErrID := nErrorId ); 			
+	END_IF
+	bErrorMessageSent:=TRUE;
+END_IF
+
+IF  bReset OR fbStateTimoutTimer.Q THEN 
+	fbStateTimoutTimer(In:=FALSE);
+	nState:=0;
+	bReadCmd:=FALSE;
+	bWriteCmd:=FALSE;
+	//Clear buffer
+	nIndexEndOfCommand:=0;
+	MEMSET(ADR(byteCommandBuffer),0,SIZEOF(byteCommandBuffer));
+	nBytesInCommandBuffer:=0;
+	bExecuteWriteBufferToEPICS:=FALSE;
+	bErrorMessageSent:=FALSE;
+	nErrorId:=0;		
+	bError:=0;
+END_IF
+bErrorOld:=bError;
+
+
+
+
+  
+
+
+
+
+	
+	
+		
+		
+				
+
+		
+
+		
+		
+
+]]></ST>
+    </Implementation>
+    <ObjectProperties />
+  </POU>
+</TcPlcObject>

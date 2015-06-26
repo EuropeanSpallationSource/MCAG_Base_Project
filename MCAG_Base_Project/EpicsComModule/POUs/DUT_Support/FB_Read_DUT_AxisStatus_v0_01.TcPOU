@@ -1,0 +1,402 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.0.25">
+  <POU Name="FB_Read_DUT_AxisStatus_v0_01" Id="{24ffa4ed-439a-409e-ba96-20df1e5a2038}">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_Read_DUT_AxisStatus_v0_01
+VAR_INPUT
+	sVariableName:STRING;
+	sSymDataType:STRING;
+END_VAR
+VAR
+	pInputDataBuffer	: 	POINTER TO DUT_AxisStatus_v0_01;
+	iCounter			:	INT:=0;
+	sValue				: 	STRING;
+	iLength				:	INT:=0;
+END_VAR
+VAR_IN_OUT
+	byteADSReadBuffer	:	ARRAY[0..PLCPRJ_BUFFER_SIZE] OF BYTE;//ADS input buffer
+	byteFrameBuffer		:  	ARRAY[0..EPICS_MAX_FRAME_SIZE] OF BYTE;
+	fbTx 				: 	FB_FrameFifo;// TX fifo * To send
+	fbLog				: 	FB_LogFifo;// Log message fifo
+	bReady				:	BOOL; //Allways transfer stucts in the same frame (max size is 1500byte)
+	iFrameBufferIndex	:	INT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+IF find(STR1:=sSymDataType,STR2:='DUT_AxisStatus_v0_01')>0 THEN
+	iFrameBufferIndex:=0;
+	iCounter:=iCounter+1; //Just to see execution
+	pInputDataBuffer:=ADR(byteADSReadBuffer);//ADR(bADSReadBuffer[0]);
+	//Add variable name to output frame
+	iLength:=len(str:=sVariableName);
+	memcpy(srcAddr:=ADR(sVariableName),destAddr:=ADR(byteFrameBuffer[iFrameBufferIndex]),n:=iLength); 
+	iFrameBufferIndex:=iFrameBufferIndex+iLength;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_EQUAL;  // =
+
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+	IF pInputDataBuffer^.bEnable THEN
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ONE; // 1
+	ELSE
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ZERO; // 0
+	END_IF
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	IF pInputDataBuffer^.bReset THEN
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ONE; // 1
+	ELSE
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ZERO; // 0
+	END_IF
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	IF pInputDataBuffer^.bExecute THEN
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ONE; // 1
+	ELSE
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ZERO; // 0
+	END_IF
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	sValue:= UINT_TO_STRING(pInputDataBuffer^.nCommand);
+	iLength:=len(str:=sValue);
+	memcpy(srcAddr:=ADR(sValue),destAddr:=ADR(byteFrameBuffer[iFrameBufferIndex]),n:=iLength);
+	iFrameBufferIndex:=iFrameBufferIndex+iLength;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	sValue:= UINT_TO_STRING(pInputDataBuffer^.nCmdData);
+	iLength:=len(str:=sValue);
+	memcpy(srcAddr:=ADR(sValue),destAddr:=ADR(byteFrameBuffer[iFrameBufferIndex]),n:=iLength);
+	iFrameBufferIndex:=iFrameBufferIndex+iLength;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	sValue:= LREAL_TO_STRING(pInputDataBuffer^.fVelocity);
+	iLength:=len(str:=sValue);
+	memcpy(srcAddr:=ADR(sValue),destAddr:=ADR(byteFrameBuffer[iFrameBufferIndex]),n:=iLength);
+	iFrameBufferIndex:=iFrameBufferIndex+iLength;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	sValue:= LREAL_TO_STRING(pInputDataBuffer^.fPosition);
+	iLength:=len(str:=sValue);
+	memcpy(srcAddr:=ADR(sValue),destAddr:=ADR(byteFrameBuffer[iFrameBufferIndex]),n:=iLength);
+	iFrameBufferIndex:=iFrameBufferIndex+iLength;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	sValue:= LREAL_TO_STRING(pInputDataBuffer^.fAcceleration);
+	iLength:=len(str:=sValue);
+	memcpy(srcAddr:=ADR(sValue),destAddr:=ADR(byteFrameBuffer[iFrameBufferIndex]),n:=iLength);
+	iFrameBufferIndex:=iFrameBufferIndex+iLength;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	sValue:= LREAL_TO_STRING(pInputDataBuffer^.fDeceleration);
+	iLength:=len(str:=sValue);
+	memcpy(srcAddr:=ADR(sValue),destAddr:=ADR(byteFrameBuffer[iFrameBufferIndex]),n:=iLength);
+	iFrameBufferIndex:=iFrameBufferIndex+iLength;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	IF pInputDataBuffer^.bJogFwd THEN
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ONE; // 1
+	ELSE
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ZERO; // 0
+	END_IF
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	IF pInputDataBuffer^.bJogBwd THEN
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ONE; // 1
+	ELSE
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ZERO; // 0
+	END_IF
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	IF pInputDataBuffer^.bLimitFwd THEN
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ONE; // 1
+	ELSE
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ZERO; // 0
+	END_IF
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	IF pInputDataBuffer^.bLimitBwd THEN
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ONE; // 1
+	ELSE
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ZERO; // 0
+	END_IF
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	sValue:= LREAL_TO_STRING(pInputDataBuffer^.fOverride);
+	iLength:=len(str:=sValue);
+	memcpy(srcAddr:=ADR(sValue),destAddr:=ADR(byteFrameBuffer[iFrameBufferIndex]),n:=iLength);
+	iFrameBufferIndex:=iFrameBufferIndex+iLength;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	IF pInputDataBuffer^.bHomeSensor THEN
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ONE; // 1
+	ELSE
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ZERO; // 0
+	END_IF
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	IF pInputDataBuffer^.bEnabled THEN
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ONE; // 1
+	ELSE
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ZERO; // 0
+	END_IF
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	IF pInputDataBuffer^.bError THEN
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ONE; // 1
+	ELSE
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ZERO; // 0
+	END_IF
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	sValue:= UDINT_TO_STRING(pInputDataBuffer^.nErrorId);
+	iLength:=len(str:=sValue);
+	memcpy(srcAddr:=ADR(sValue),destAddr:=ADR(byteFrameBuffer[iFrameBufferIndex]),n:=iLength);
+	iFrameBufferIndex:=iFrameBufferIndex+iLength;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	sValue:= LREAL_TO_STRING(pInputDataBuffer^.fActVelocity);
+	iLength:=len(str:=sValue);
+	memcpy(srcAddr:=ADR(sValue),destAddr:=ADR(byteFrameBuffer[iFrameBufferIndex]),n:=iLength);
+	iFrameBufferIndex:=iFrameBufferIndex+iLength;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	sValue:= LREAL_TO_STRING(pInputDataBuffer^.fActPosition);
+	iLength:=len(str:=sValue);
+	memcpy(srcAddr:=ADR(sValue),destAddr:=ADR(byteFrameBuffer[iFrameBufferIndex]),n:=iLength);
+	iFrameBufferIndex:=iFrameBufferIndex+iLength;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	sValue:= LREAL_TO_STRING(pInputDataBuffer^.fActDiff);
+	iLength:=len(str:=sValue);
+	memcpy(srcAddr:=ADR(sValue),destAddr:=ADR(byteFrameBuffer[iFrameBufferIndex]),n:=iLength);
+	iFrameBufferIndex:=iFrameBufferIndex+iLength;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	IF pInputDataBuffer^.bHomed THEN
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ONE; // 1
+	ELSE
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ZERO; // 0
+	END_IF
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+	byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_COMMA; // ,	
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+        IF iFrameBufferIndex>=EPICS_MAX_FRAME_SIZE-25 THEN  //Send before full buffer
+            fbTx.AddTail( bPut := ADR(byteFrameBuffer), nWriteCount:=iFrameBufferIndex);(* Put string to the tx fifo *)
+            IF NOT fbTx.bOk THEN(* TX fifo overflow => log error *)
+             fbLog.Error( sMessage := 'FB_FrameFifo(sender)', nErrID := PLCPRJ_ERROR_SENDFIFO_OVERFLOW );
+            END_IF
+            iFrameBufferIndex:=0;
+        END_IF
+
+	IF pInputDataBuffer^.bBusy THEN
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ONE; // 1
+	ELSE
+		byteFrameBuffer[iFrameBufferIndex]:=EPICS_ASCII_ZERO; // 0
+	END_IF
+	iFrameBufferIndex:=iFrameBufferIndex+1;
+
+	bReady:=TRUE;	//Buffer ready for sending!
+END_IF]]></ST>
+    </Implementation>
+    <ObjectProperties />
+  </POU>
+</TcPlcObject>

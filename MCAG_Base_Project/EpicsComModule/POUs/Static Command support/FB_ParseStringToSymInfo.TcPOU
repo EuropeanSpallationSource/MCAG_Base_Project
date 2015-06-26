@@ -1,0 +1,95 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.0.25">
+  <POU Name="FB_ParseStringToSymInfo" Id="{690bad43-874e-43fb-a419-847d3c3e0115}">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_ParseStringToSymInfo
+VAR
+	sVersion: STRING:='0.9.0';
+END_VAR
+VAR_INPUT
+	sAdress:STRING:='';
+END_VAR
+VAR	
+	sTemp: STRING;
+	nEqualSign: INT;
+	nComma:INT:=0;
+	stemp1: STRING(255);
+	sTemp2: STRING(255);
+	sTemp3: STRING(255);
+	sTemp4: STRING(255);
+	sVal:STRING;
+	nQuestionSign: INT;
+END_VAR
+
+VAR_OUTPUT
+	nErrorId: UDINT;
+	bError:BOOL:=FALSE;
+	sSubErrorString: STRING;
+	stSymInfo:SYMINFOSTRUCT;
+END_VAR
+
+//Should look like "ADR=idxgrp,idxoff,size,type/"   => ADR=1,2,3,4/
+(*
+Type:
+ADST_BIT             = 33 (&H21)
+ADST_INT8            = 16 (&H10)
+ADST_INT16           = 2
+ADST_INT32           = 3
+ADST_INT64           = 20 (&H14)
+ADST_UINT8           = 17 (&H11)
+ADST_UINT16          = 18 (&H12)
+ADST_UINT32          = 19 (&H13)
+ADST_UINT64          = 21 (&H15)
+ADST_REAL32          = 4
+ADST_REAL64          = 5
+ADST_REAL80          = 32 (&H20)
+ADST_BIGTYPE         = 65 (&H41)
+ADST_VOID            = 0
+*)
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//parse , delimited file to syminfo struct
+	bError:=TRUE;
+	nErrorId:=401;	
+	sSubErrorString:='Parsing of absolute adress failed';	
+	stSymInfo.adsDataType:=0;
+	stSymInfo.byteSize:=0;
+	stSymInfo.idxGroup:=0;
+	stSymInfo.idxOffset:=0;		
+	nComma:=find(STR1:=sAdress,STR2:=EPICS_ARRAY_DELIMITER);
+	IF 	nComma>0 THEN
+		sVal:=left(STR:=sAdress,size:=nComma);
+		stSymInfo.idxGroup:=STRING_TO_UDINT(sVal);					
+		sTemp1:=right(STR:=sAdress,size:=len(sAdress)-nComma);
+		//nRemove:=nRemove+nComma+1;		
+		nComma:=find(STR1:=sTemp1,STR2:=EPICS_ARRAY_DELIMITER);
+		IF 	nComma>0 THEN
+			sVal:=left(STR:=sTemp1,size:=nComma);
+			stSymInfo.idxOffset:=STRING_TO_UDINT(sVal);					
+			sTemp2:=right(STR:=sTemp1,size:=len(sTemp1)-nComma);
+			//nRemove:=nRemove+nComma+1;
+			nComma:=find(STR1:=sTemp2,STR2:=EPICS_ARRAY_DELIMITER); //last			
+			IF 	nComma>0 THEN
+				sVal:=left(STR:=sTemp2,size:=nComma);
+				stSymInfo.byteSize:=STRING_TO_UDINT(sVal);					
+				sTemp3:=right(STR:=sTemp2,size:=len(sTemp2)-nComma);		
+				//nRemove:=nRemove+nComma+1;
+				nComma:=len(sTemp3);												
+				IF nComma>0 THEN
+					stSymInfo.adsDataType:=STRING_TO_INT(sTemp3);
+					//nRemove:=nRemove+nComma+1;													
+					bError:=FALSE;
+					sSubErrorString:='';
+					nErrorId:=0;
+				END_IF					
+			END_IF							
+		END_IF					
+	END_IF
+	
+		
+
+
+]]></ST>
+    </Implementation>
+    <ObjectProperties />
+  </POU>
+</TcPlcObject>

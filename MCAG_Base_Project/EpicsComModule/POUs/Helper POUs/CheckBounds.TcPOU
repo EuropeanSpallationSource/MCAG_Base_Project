@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.0.25">
+  <POU Name="CheckBounds" Id="{cee9da00-acfc-4f83-a07a-0160f34b636f}">
+    <Declaration><![CDATA[FUNCTION CheckBounds : DINT
+VAR_INPUT
+        index, lower, upper : DINT;
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF index<lower THEN
+        CheckBounds := lower;
+ELSIF index>upper THEN
+        CheckBounds := upper;
+ELSE
+        CheckBounds := index;
+END_IF]]></ST>
+    </Implementation>
+    <ObjectProperties />
+  </POU>
+</TcPlcObject>
