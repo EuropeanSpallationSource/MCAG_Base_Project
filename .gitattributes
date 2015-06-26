@@ -1,15 +1,21 @@
+#Overall rule: All files are "text auto"
 * text=auto
-.gitignore text
-.gitattribute text
-README.md text
-*.txt text
-*.pdf -text
-*.sln text eol=crlf
-*.TcDUT text eol=crlf
-*.TcGVL text eol=crlf
-*.TcPOU text eol=crlf
-*.TcTTO text eol=crlf
-*.tmc   text eol=crlf
-*.tsproj text eol=crlf
-*.plcProj text eol=crlf
-*.plcproj text eol=crlf
+#Overwrite the general rule for known files/extensions
+#Try to keep the order alphabetically
+.gitignore           text
+.gitattribute 	     text
+README.md 	     text
+
+*.plcProj 	     text eol=crlf
+*.plcproj 	     text eol=crlf
+*.pdf 		     -text
+*.py  		     text eol=lf
+*.sh  		     text eol=lf
+*.sln 		     text eol=crlf
+*.TcDUT 	     text eol=crlf
+*.TcGVL 	     text eol=crlf
+*.TcPOU 	     text eol=crlf
+*.TcTTO 	     text eol=crlf
+*.tmc   	     text eol=crlf
+*.tsproj 	     text eol=crlf
+*.txt 		     text
