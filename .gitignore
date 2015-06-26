@@ -3,6 +3,7 @@ _CompileInfo/
 _Libraries/
 *.bak
 *.~u
+*.pyc
 *.tpy
 *.suo
 

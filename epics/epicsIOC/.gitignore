@@ -1,0 +1,16 @@
+.set*.txt
+bin/
+configure/RELEASE
+dbd/
+db/*.db
+EssMCAGmotorApp/Db/EssMCAGmotor.substitutions
+include/
+iocBoot/iocEssMCAGmotor/envPaths*
+iocBoot/iocEssMCAGmotor/st.cmd.linux*
+iocBoot/iocEssMCAGmotor/st.cmd.darwin*
+iocBoot/iocEssMCAGmotor/st.gdb.*
+iocBoot/iocEssMCAGmotor/xx
+lib/
+O.*/
+*.pyc
+*~

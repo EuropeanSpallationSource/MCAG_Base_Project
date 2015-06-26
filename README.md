@@ -9,4 +9,10 @@ A general overview can be found here:
 
 https://indico.fnal.gov/getFile.py/access?contribId=63&sessionId=12&resId=1&materialId=slides&confId=9718
 
-Documentation is found in the "Documentation" directory.
+The TwinCAT 3 project is under TwinCAT/,
+
+the EPICS model 3 motor driver under  epics/epicsIOC/,
+
+a motor simulator under epics/simulator/,
+
+and a python test script under epics/simulator/testScripts
