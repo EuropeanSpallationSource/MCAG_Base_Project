@@ -1,0 +1,14 @@
+* text=auto
+.gitignore text
+.gitattribute text
+README.md text
+*.txt text
+*.pdf -text
+*.sln text eol=crlf
+*.TcDUT text eol=crlf
+*.TcGVL text eol=crlf
+*.TcPOU text eol=crlf
+*.TcTTO text eol=crlf
+*.tsproj text eol=crlf
+*.plcProj text eol=crlf
+*.plcproj text eol=crlf
