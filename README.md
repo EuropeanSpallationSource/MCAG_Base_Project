@@ -1,7 +1,7 @@
 # MCAG_Base_Project
 TwinCAT project prepared to be used with EPICS
 
-This is a TwinCAT 3 project which is prepared to be used together with EPICS:
+EPICS model 3 motor driver for a TwinCAT 3 system
 
 http://www.aps.anl.gov/epics
 
