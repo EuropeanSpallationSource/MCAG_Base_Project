@@ -35,7 +35,7 @@ def waitForStartAndDone(motor, tc_no, wait_for_done):
         wait_for_start -= polltime
         dmov = int(motor.get('DMOV'))
         movn = int(motor.get('MOVN'))
-        print '%s: wait_for_start=%f dmov=%d movn=%d pos=%f' % (tc_no, wait_for_start, dmov, movn, motor.get_position(readback=True))
+        print '%s: wait_for_start=%f dmov=%d movn=%d dpos=%f' % (tc_no, wait_for_start, dmov, movn, motor.get_position(readback=True,dial=True))
         if movn and not dmov:
            break
         time.sleep(polltime)
@@ -45,7 +45,7 @@ def waitForStartAndDone(motor, tc_no, wait_for_done):
     while wait_for_done > 0:
         dmov = int(motor.get('DMOV'))
         movn = int(motor.get('MOVN'))
-        print '%s: wait_for_done=%f dmov=%d movn=%d pos=%f' % (tc_no, wait_for_done, dmov, movn, motor.get_position(readback=True))
+        print '%s: wait_for_done=%f dmov=%d movn=%d dpos=%f' % (tc_no, wait_for_done, dmov, movn, motor.get_position(readback=True,dial=True))
         if dmov and not movn:
             return True
         time.sleep(polltime)
@@ -63,7 +63,7 @@ def jogDirection(motor, tc_no, direction, jogging_velocity, acceleration):
     time_to_wait = 30
     if jogging_velocity > 0:
         if motor.DHLM != motor.DLLM:
-            distance = math.fabs(motor.get_position(readback=True) - destination)
+            distance = math.fabs(motor.get_position(readback=True,dial=True) - destination)
             time_to_wait += distance / jogging_velocity + 2 * acceleration
     done = waitForStartAndDone(motor, tc_no, time_to_wait)
 
@@ -72,20 +72,18 @@ def jogDirection(motor, tc_no, direction, jogging_velocity, acceleration):
     else:
         motor.put('JOGR', 0)
 
-#def waitForStartAndDone(motor, tc_no, wait_for_done):
-#assertAlmostEqual(position, self.middle_position, msg=tc_no, delta=0.1)
 def calcAlmostEqual(motor, tc_no, expected, actual, maxdelta):
     delta = math.fabs(expected - actual)
     inrange = delta < maxdelta
     print '%s: assertAlmostEqual expected=%f actual=%f delta=%f maxdelta=%f inrange=%d' % (tc_no, expected, actual, delta, maxdelta, inrange)
     return inrange
 
-def movePosition(motor, tc_no, destination, velocity, acceleration):
+def moveDialPosition(motor, tc_no, destination, velocity, acceleration):
     time_to_wait = 30
     if velocity > 0:
-        distance = math.fabs(motor.get_position(readback=True) - destination)
+        distance = math.fabs(motor.get_position(readback=True,dial=True) - destination)
         time_to_wait += distance / velocity + 2 * acceleration
-    motor.put('VAL', destination)
+    motor.put('DVAL', destination)
     done = waitForStartAndDone(motor, tc_no, time_to_wait)
 
 
@@ -96,7 +94,7 @@ class Test(unittest.TestCase):
 
     m1 = epics.Motor(device + ':' + motor)
 
-    middle_position  = round((m1.DLLM + m1.DHLM) / 2)
+    middle_dialPosition  = round((m1.DLLM + m1.DHLM) / 2)
     range_postion    = m1.DHLM - m1.DLLM
     homing_velocity  = m1.HVEL
     jogging_velocity = m1.JVEL
@@ -106,13 +104,13 @@ class Test(unittest.TestCase):
     saved_high_limit = m1.get('DHLM')
     saved_low_limit = m1.get('DLLM')
     
-    print "m1.DLLM=%d m1.DHLM=%d middle_position=%d" % (m1.DLLM, m1.DHLM, middle_position)
+    print "m1.DLLM=%d m1.DHLM=%d middle_dialPosition=%d" % (m1.DLLM, m1.DHLM, middle_dialPosition)
 
     def setUp(self):
         print 'set up'
-        mymiddle_position  = int((self.m1.DLLM + self.m1.DHLM) / 2)
-        print 'self.m1.DLLM=%f self.m1.DHLM=%f self.middle_position=%f' % (self.m1.DLLM, self.m1.DHLM, self.middle_position)
-        print 'self.m1.DLLM=%f self.m1.DHLM=%f mymiddle_position=%f' % (self.m1.get('DLLM'), self.m1.get('DHLM'), mymiddle_position)
+        mymiddle_dialPosition  = int((self.m1.DLLM + self.m1.DHLM) / 2)
+        print 'self.m1.DLLM=%f self.m1.DHLM=%f self.middle_dialPosition=%f' % (self.m1.DLLM, self.m1.DHLM, self.middle_dialPosition)
+        print 'self.m1.DLLM=%f self.m1.DHLM=%f mymiddle_dialPosition=%f' % (self.m1.get('DLLM'), self.m1.get('DHLM'), mymiddle_dialPosition)
 
     def tearDown(self):
         print 'clean up'
@@ -183,18 +181,18 @@ class Test(unittest.TestCase):
         self.assertNotEqual(0, msta & self.MSTA_BIT_PLUS_LS, 'hard limit switch')
 
         
-    # 10%  position
+    # 10%  dialPosition
     def test_TC_023(self):
-        tc_no = "TC-023-10-percent-position"
+        tc_no = "TC-023-10-percent-dialPosition"
         print '%s' % tc_no
         destination =  (self.saved_high_limit + 9 * self.saved_low_limit) / 10
-        movePosition(self.m1, tc_no, destination,
-                     self.moving_velocity, self.acceleration)
+        moveDialPosition(self.m1, tc_no, destination,
+                         self.moving_velocity, self.acceleration)
 
-        position = self.m1.get_position(readback=True)
-        print '%s postion=%f middle_position=%f' % (
-            tc_no, position, self.middle_position)
-        assert calcAlmostEqual(motor, tc_no, destination, position, 2)
+        dialPosition = self.m1.get_position(readback=True,dial=True)
+        print '%s postion=%f middle_dialPosition=%f' % (
+            tc_no, dialPosition, self.middle_dialPosition)
+        assert calcAlmostEqual(motor, tc_no, destination, dialPosition, 2)
         
     # Low soft limit
     def test_TC_030(self):
@@ -237,14 +235,14 @@ class Test(unittest.TestCase):
         self.assertNotEqual(0, msta & self.MSTA_BIT_MINUS_LS, 'hard limit switch')
 
 
-    # middle position
+    # middle dialPosition
     def test_TC_040(self):
-        tc_no = "TC-040-middle-position"
+        tc_no = "TC-040-middle-dialPosition"
         print '%s' % tc_no
-        movePosition(self.m1, tc_no, self.middle_position,
-                     self.moving_velocity, self.acceleration)
+        moveDialPosition(self.m1, tc_no, self.middle_dialPosition,
+                         self.moving_velocity, self.acceleration)
 
-        position = self.m1.get_position(readback=True)
-        print '%s postion=%f middle_position=%f' % (
-            tc_no, position, self.middle_position)
-        assert calcAlmostEqual(motor, tc_no, self.middle_position, position, 2)
+        dialPosition = self.m1.get_position(readback=True,dial=True)
+        print '%s postion=%f middle_dialPosition=%f' % (
+            tc_no, dialPosition, self.middle_dialPosition)
+        assert calcAlmostEqual(motor, tc_no, self.middle_dialPosition, dialPosition, 2)
