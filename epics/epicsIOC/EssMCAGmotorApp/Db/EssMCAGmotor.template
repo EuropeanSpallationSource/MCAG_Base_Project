@@ -23,6 +23,6 @@ record(motor,"$(P)$(M)")
 	field(TWV,"1")
 }
 
-record (asyn, "$(P)")
+record (asyn, "$(P)$(PORT):asyn")
 {
 }
