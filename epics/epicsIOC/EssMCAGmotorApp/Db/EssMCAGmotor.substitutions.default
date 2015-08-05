@@ -1,10 +1,10 @@
 file "EssMCAGmotor.template"
 {
 pattern
-{P,     N,  M,        DTYP,         PORT,  ADDR,  DESC,          EGU, DIR,  VELO, JVEL,  VBAS,  ACCL,  BDST, DLY,  BVEL,  BACC,  MRES, ERES,   PREC,  DLLM,  DHLM,  INIT}
-{IOC:,  1,  "m$(N)",  "asynMotor",  MCU1,  1,     "motor $(N)",  mm,  Pos,  25,   10,    2,     1,     0,    0.3,  1,     .2,    1,    1,      3,     -140,   13,    ""}
-{IOC:,  2,  "m$(N)",  "asynMotor",  MCU1,  2,     "motor $(N)",  mm,  Pos,  3,    3,     0.5,   1,     0,    0,    1,     .2,    1,    1,      3,     0,       0,    ""}
-{IOC:,  3,  "m$(N)",  "asynMotor",  MCU1,  3,     "motor $(N)",  mm,  Pos,  3,    3,     0.5,   1,     0,    0,    1,     .2,    1,    1,      3,     0,       0,    ""}
-{IOC:,  4,  "m$(N)",  "asynMotor",  MCU1,  4,     "motor $(N)",  mm,  Pos,  3,    3,     0.5,   1,     0,    0,    1,     .2,    1,    1,      3,     0,       0,    ""}
+{P,       N,  M,      DTYP,         PORT,     ADDR,  DESC,          EGU, DIR,  VELO, JVEL,  VBAS,  ACCL,  BDST, DLY,  BVEL,  BACC,  MRES, ERES,   PREC,  DLLM,  DHLM,  INIT}
+{"$(P)",  1,  $(M1),  "asynMotor",  $(PORT),  1,     "motor $(N)",  mm,  Pos,  25,   10,    2,     1,     0,    0.3,  1,     .2,    1,    1,      3,     -140,   13,    ""}
+{"$(P)",  2,  $(M2),  "asynMotor",  $(PORT),  2,     "motor $(N)",  mm,  Pos,  3,    3,     0.5,   1,     0,    0,    1,     .2,    1,    1,      3,     0,       0,    ""}
+{"$(P)",  3,  $(M3),  "asynMotor",  $(PORT),  3,     "motor $(N)",  mm,  Pos,  3,    3,     0.5,   1,     0,    0,    1,     .2,    1,    1,      3,     0,       0,    ""}
+{"$(P)",  4,  $(M4),  "asynMotor",  $(PORT),  4,     "motor $(N)",  mm,  Pos,  3,    3,     0.5,   1,     0,    0,    1,     .2,    1,    1,      3,     0,       0,    ""}
 }
 

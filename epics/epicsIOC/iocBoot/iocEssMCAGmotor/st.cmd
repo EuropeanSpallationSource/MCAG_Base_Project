@@ -13,7 +13,7 @@ EssMCAGmotor_registerRecordDeviceDriver pdbbase
 
 ## Load record instances
 #dbLoadRecords("db/xxx.db","user=torstenbogershausenHost")
-dbLoadRecords("db/EssMCAGmotor.db")
+dbLoadRecords("db/EssMCAGmotor.db", "P=IOC:,PORT=MCU1,M1=m1,M2=m2,M3=m3,M4=m4")
 
 ## Configure devices
 drvAsynIPPortConfigure("MC_CPU1","127.0.0.1:5024",0,0,0)
