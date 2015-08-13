@@ -6,7 +6,11 @@
 #include "hw_motor.h"
 #include "sock-util.h" /* stdlog */
 
-#define MOTOR_POS_HOME 30.0
+#define MOTOR_POS_HOME 0
+#define MOTOR_REV_ERES (-57)
+#define MOTOR_PARK_POS (-64)
+
+
 #define MOTOR_VEL_HOME 1.0
 #define MOTOR_VEL_HOME_MAX 9.9
 
@@ -39,6 +43,12 @@ static motor_axis_type motor_axis[MAX_AXES];
 static motor_axis_type motor_axis_last[MAX_AXES];
 static motor_axis_type motor_axis_reported[MAX_AXES];
 
+static double getEncoderPosFromMotorPos(int axis_no, double MotorPosNow)
+{
+  (void)axis_no;
+  return (double)(int)((MotorPosNow - MOTOR_PARK_POS) * MOTOR_REV_ERES);
+}
+
 static void init(void)
 {
   static int init_done;
@@ -49,10 +59,10 @@ static void init(void)
     memset(motor_axis_reported, 0, sizeof(motor_axis_reported));
     for (u=0; u < MAX_AXES; u++) {
       motor_axis[u].HomePos = MOTOR_POS_HOME;
-      motor_axis[u].EncoderPos = 10 + u; /* REP/RMP in motorRecord are UINT32 */
-      motor_axis[u].MotorPosNow      = motor_axis[u].EncoderPos;
+      motor_axis[u].MotorPosNow = MOTOR_PARK_POS;
+      motor_axis[u].EncoderPos = getEncoderPosFromMotorPos(u, motor_axis[u].MotorPosNow);
       motor_axis_last[u].EncoderPos  = motor_axis[u].EncoderPos;
-      motor_axis_last[u].MotorPosNow = motor_axis[u].EncoderPos;
+      motor_axis_last[u].MotorPosNow = motor_axis[u].MotorPosNow;
     }
     init_done = 1;
   }
@@ -108,8 +118,11 @@ static void calcHomePos(int axis_no)
 {
   if (motor_axis[axis_no].definedMinPos &&
       motor_axis[axis_no].definedMaxPos) {
-    double value =
-      (motor_axis[axis_no].valueMinPos + motor_axis[axis_no].valueMaxPos) / 2;
+    double value = MOTOR_POS_HOME;
+    if (value < motor_axis[axis_no].valueMinPos ||
+        value > motor_axis[axis_no].valueMaxPos) {
+      value = (motor_axis[axis_no].valueMinPos + motor_axis[axis_no].valueMaxPos) / 2;
+    }
     fprintf(stdlog,
             "%s/%s:%d axis_no=%d value=%f\n",
             __FILE__, __FUNCTION__, __LINE__, axis_no, value);
@@ -231,11 +244,23 @@ double getMotorPos(int axis_no)
     /* Soft limits defined: Clip the value  */
     if (motor_axis[axis_no].definedMaxPos) {
       if (motor_axis[axis_no].MotorPosNow > motor_axis[axis_no].valueMaxPos) {
+        fprintf(stdlog,
+                "%s/%s:%d axis_no=%d CLIP MotorPosNow=%f valueMaxPos=%f\n",
+                __FILE__, __FUNCTION__, __LINE__,
+                axis_no,
+                motor_axis[axis_no].MotorPosNow,
+                motor_axis[axis_no].valueMaxPos);
         motor_axis[axis_no].MotorPosNow = motor_axis[axis_no].valueMaxPos;
       }
     }
     if (motor_axis[axis_no].definedMinPos) {
       if (motor_axis[axis_no].MotorPosNow < motor_axis[axis_no].valueMinPos) {
+        fprintf(stdlog,
+                "%s/%s:%d axis_no=%d CLIP MotorPosNow=%f valueMinPos=%f\n",
+                __FILE__, __FUNCTION__, __LINE__,
+                axis_no,
+                motor_axis[axis_no].MotorPosNow,
+                motor_axis[axis_no].valueMinPos);
         motor_axis[axis_no].MotorPosNow = motor_axis[axis_no].valueMinPos;
       }
     }
@@ -258,8 +283,8 @@ double getMotorPos(int axis_no)
     }
 
 
-  /* This simulation has motorPos == EncoderPos */
-  motor_axis[axis_no].EncoderPos = motor_axis[axis_no].MotorPosNow;
+  /* This simulation has EncoderPos */
+  motor_axis[axis_no].EncoderPos = getEncoderPosFromMotorPos(axis_no, motor_axis[axis_no].MotorPosNow);
   return motor_axis[axis_no].MotorPosNow;
 }
 
