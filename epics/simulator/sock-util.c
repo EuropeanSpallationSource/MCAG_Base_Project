@@ -412,16 +412,16 @@ void send_to_socket(int fd, const char *buf, unsigned len)
     res = write(fd, buf, len);
     if (res != (int)len)
     {
-      LOGERR_ERRNO("write(%u %d) failed\n",
+      LOGERR_ERRNO("write(%u %d) failed, calling close()\n",
                    len, res);
-      exit(1);
+      close_and_remove_client_con_fd(fd);
     }
   }
   else if (res != (int)len)
   {
-    LOGERR_ERRNO("send(%u %d) failed\n",
+    LOGERR_ERRNO("send(%u %d) failed, calling close()\n",
                  len, res);
-    exit(1);
+    close_and_remove_client_con_fd(fd);
   }
 }
 
