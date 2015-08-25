@@ -162,11 +162,14 @@ class Test(unittest.TestCase):
         print '%s' % tc_no
         old_high_limit = self.m1.get('DHLM')
         old_low_limit = self.m1.get('DLLM')
-        #switch off the soft limits. low must be first because
-        #the simulator "caches" the last (soft high) limit
-        #to simulate the hard limit switch
-        self.m1.put('DLLM', 0.0)
-        self.m1.put('DHLM', 0.0)
+        #switch off the soft limits. Depending on the postion
+        # low or high must be set to 0 first
+        if self.m1.get_position(readback=True,dial=True) > 0:
+            self.m1.put('DLLM', 0.0)
+            self.m1.put('DHLM', 0.0)
+        else:
+            self.m1.put('DHLM', 0.0)
+            self.m1.put('DLLM', 0.0)
         
         jogDirection(self.m1, tc_no, 1, self.jogging_velocity, self.acceleration)
         # Get values, check them later
@@ -219,9 +222,14 @@ class Test(unittest.TestCase):
         print '%s' % tc_no
         old_high_limit = self.m1.get('DHLM')
         old_low_limit = self.m1.get('DLLM')
-        #switch off the soft limits.
-        self.m1.put('DLLM', 0.0)
-        self.m1.put('DHLM', 0.0)
+        #switch off the soft limits. Depending on the postion
+        # low or high must be set to 0 first
+        if self.m1.get_position(readback=True,dial=True) > 0:
+            self.m1.put('DLLM', 0.0)
+            self.m1.put('DHLM', 0.0)
+        else:
+            self.m1.put('DHLM', 0.0)
+            self.m1.put('DLLM', 0.0)
         
         jogDirection(self.m1, tc_no, 0, self.jogging_velocity, self.acceleration)
         lvio = int(self.m1.get('LVIO'))
