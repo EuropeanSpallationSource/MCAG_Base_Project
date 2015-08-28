@@ -9,27 +9,6 @@
 #include "hw_motor.h"
 #include "cmd_EAT.h"
 
-#define RETURN_OR_DIE(fmt, ...)                 \
-  do {                                          \
-    cmd_buf_printf("Error: ");                  \
-    cmd_buf_printf(fmt, ##__VA_ARGS__);         \
-    if (DIE_ON_ERROR_BIT0()) (void)fprintf(stdlog, fmt, ##__VA_ARGS__);   \
-    if (DIE_ON_ERROR_BIT0()) (void)fprintf(stdlog, "%s", "\n"); \
-    if (DIE_ON_ERROR_BIT1())  exit(2);          \
-    return;                                     \
-  }                                             \
-  while(0)
-
-#define RETURN_ERROR_OR_DIE(errcode,fmt, ...)   \
-  do {                                          \
-    cmd_buf_printf("Error: ");                  \
-    cmd_buf_printf(fmt, ##__VA_ARGS__);         \
-    if (DIE_ON_ERROR_BIT0()) (void)fprintf(stdlog, fmt, ##__VA_ARGS__);   \
-    if (DIE_ON_ERROR_BIT0()) (void)fprintf(stdlog, "%s", "\n"); \
-    if (DIE_ON_ERROR_BIT1())  exit(2);          \
-    return errcode;                             \
-  }                                             \
-  while(0)
 
 typedef struct
 {
@@ -80,11 +59,11 @@ static int motorHandleADS_ADR_putInt(unsigned adsport,
   if (group_no >= 0x5000 && group_no < 0x6000) {
     int motor_axis_no = (int)group_no - 0x5000;
     if (offset_in_group == 0xB) {
-      enableMinPos(motor_axis_no, iValue);
+      enableLowSoftLimit(motor_axis_no, iValue);
       return 0;
     }
     if (offset_in_group == 0xC) {
-      enableMaxPos(motor_axis_no, iValue);
+      enableHighSoftLimit(motor_axis_no, iValue);
       return 0;
     }
   }
@@ -119,11 +98,11 @@ static int motorHandleADS_ADR_putFloat(unsigned adsport,
   if (group_no >= 0x5000 && group_no < 0x6000) {
     int motor_axis_no = (int)group_no - 0x5000;
     if (offset_in_group == 0xD) {
-      setMinPos(motor_axis_no, fValue);
+      setLowSoftLimitPos(motor_axis_no, fValue);
       return 0;
     }
     if (offset_in_group == 0xE) {
-      setMaxPos(motor_axis_no, fValue);
+      setHighSoftLimitPos(motor_axis_no, fValue);
       return 0;
     }
   }
