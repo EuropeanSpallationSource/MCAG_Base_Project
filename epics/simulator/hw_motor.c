@@ -10,30 +10,35 @@
 #define MOTOR_REV_ERES (-57)
 #define MOTOR_PARK_POS (-64)
 
-
-#define MOTOR_VEL_HOME 1.0
-#define MOTOR_VEL_HOME_MAX 9.9
+#define MOTOR_VEL_HOME_MAX 3.0
 
 typedef struct
 {
   struct timeval lastPollTime;
 
   double HomePos;     /* home switch */
-  double valueMaxPos; /* limit switch */
-  double valueMinPos; /* limit switch */
-  int definedMinPos;
-  int definedMaxPos;
+  double highSoftLimitPos;
+  double lowSoftLimitPos;
+  double highHardLimitPos;
+  double lowHardLimitPos;
+  int definedLowHardLimitPos;
+  int definedHighHardLimitPos;
+  int enabledLowSoftLimitPos;
+  int enabledHighSoftLimitPos;
   int hitPosLimitSwitch;
   int hitNegLimitSwitch;
   double MotorPosNow;
   double MotorPosWanted;
   double HomeVelocityAbsWanted;
+  double MaxHomeVelocityAbs;
   struct {
     double HomeVelocity;
     double PosVelocity;
     double JogVelocity;
   } velo;
   double EncoderPos;
+  double ParkingPos;
+  double ReverseERES;
   int homed;
   char pLimits;
 } motor_axis_type;
@@ -46,26 +51,79 @@ static motor_axis_type motor_axis_reported[MAX_AXES];
 static double getEncoderPosFromMotorPos(int axis_no, double MotorPosNow)
 {
   (void)axis_no;
-  return (double)(int)((MotorPosNow - MOTOR_PARK_POS) * MOTOR_REV_ERES);
+  return (MotorPosNow - motor_axis[axis_no].ParkingPos) * motor_axis[axis_no].ReverseERES;
+}
+
+#if 0
+static double getMotorPosFromEncoderPos(int axis_no, double EncoderPos)
+{
+  (void)axis_no;
+  return (double)(int)((EncoderPos / motor_axis[axis_no].ReverseERES) + motor_axis[axis_no].ParkingPos);
+}
+#endif
+
+void hw_motor_init(void)
+{
+  static int init_done;
+  if (!init_done) {
+    unsigned int axis_no;
+    memset(motor_axis, 0, sizeof(motor_axis));
+    memset(motor_axis_last, 0, sizeof(motor_axis_last));
+    memset(motor_axis_reported, 0, sizeof(motor_axis_reported));
+    for (axis_no=0; axis_no < MAX_AXES; axis_no++) {
+      motor_axis[axis_no].HomePos = MOTOR_POS_HOME;
+      motor_axis[axis_no].MaxHomeVelocityAbs = MOTOR_VEL_HOME_MAX;
+      setMotorParkingPosition(axis_no, MOTOR_PARK_POS);
+      motor_axis[axis_no].ReverseERES = MOTOR_REV_ERES;
+      motor_axis[axis_no].EncoderPos = getEncoderPosFromMotorPos(axis_no, motor_axis[axis_no].MotorPosNow);
+      motor_axis_last[axis_no].EncoderPos  = motor_axis[axis_no].EncoderPos;
+      motor_axis_last[axis_no].MotorPosNow = motor_axis[axis_no].MotorPosNow;
+
+    }
+    init_done = 1;
+  }
 }
 
 static void init(void)
 {
-  static int init_done;
-  if (!init_done) {
-    unsigned int u;
-    memset(motor_axis, 0, sizeof(motor_axis));
-    memset(motor_axis_last, 0, sizeof(motor_axis_last));
-    memset(motor_axis_reported, 0, sizeof(motor_axis_reported));
-    for (u=0; u < MAX_AXES; u++) {
-      motor_axis[u].HomePos = MOTOR_POS_HOME;
-      motor_axis[u].MotorPosNow = MOTOR_PARK_POS;
-      motor_axis[u].EncoderPos = getEncoderPosFromMotorPos(u, motor_axis[u].MotorPosNow);
-      motor_axis_last[u].EncoderPos  = motor_axis[u].EncoderPos;
-      motor_axis_last[u].MotorPosNow = motor_axis[u].MotorPosNow;
-    }
-    init_done = 1;
+  hw_motor_init();
+}
+
+void setMotorParkingPosition(int axis_no, double value)
+{
+  fprintf(stdlog,
+          "%s/%s:%d axis_no=%d value=%f\n",
+          __FILE__, __FUNCTION__, __LINE__, axis_no, value);
+  if (((axis_no) <= 0) || ((axis_no) >=MAX_AXES)) {
+    return;
   }
+  motor_axis[axis_no].ParkingPos = value;
+  motor_axis[axis_no].MotorPosNow = value;
+  motor_axis[axis_no].EncoderPos =
+    getEncoderPosFromMotorPos(axis_no, motor_axis[axis_no].MotorPosNow);
+}
+
+void setMotorReverseERES(int axis_no, double value)
+{
+  fprintf(stdlog,
+          "%s/%s:%d axis_no=%d value=%f\n",
+          __FILE__, __FUNCTION__, __LINE__, axis_no, value);
+  if (((axis_no) <= 0) || ((axis_no) >=MAX_AXES)) {
+    return;
+  }
+  motor_axis[axis_no].ReverseERES = value;
+}
+
+
+void setMaxHomeVelocityAbs(int axis_no, double value)
+{
+  fprintf(stdlog,
+          "%s/%s:%d axis_no=%d value=%f\n",
+          __FILE__, __FUNCTION__, __LINE__, axis_no, value);
+  if (((axis_no) <= 0) || ((axis_no) >=MAX_AXES)) {
+    return;
+  }
+  motor_axis[axis_no].MaxHomeVelocityAbs = value;
 }
 
 static double getMotorVelocityInt(int axis_no)
@@ -114,14 +172,34 @@ int getAxisHomed(int axis_no)
   return ret;
 }
 
-static void calcHomePos(int axis_no)
+static void calcHardLimitsHomePos(int axis_no)
 {
-  if (motor_axis[axis_no].definedMinPos &&
-      motor_axis[axis_no].definedMaxPos) {
+  if (motor_axis[axis_no].enabledLowSoftLimitPos &&
+      motor_axis[axis_no].enabledHighSoftLimitPos) {
     double value = MOTOR_POS_HOME;
-    if (value < motor_axis[axis_no].valueMinPos ||
-        value > motor_axis[axis_no].valueMaxPos) {
-      value = (motor_axis[axis_no].valueMinPos + motor_axis[axis_no].valueMaxPos) / 2;
+    if (value < motor_axis[axis_no].lowSoftLimitPos ||
+        value > motor_axis[axis_no].highSoftLimitPos) {
+      value = (motor_axis[axis_no].lowSoftLimitPos + motor_axis[axis_no].highSoftLimitPos) / 2;
+
+    }
+    fprintf(stdlog,
+            "%s/%s:%d axis_no=%d definedLowHardLimitPos=%d definedHighHardLimitPos=%d\n"
+            "lowSoftLimitPos=%f highSoftLimitPos=%f enabledLowSoftLimitPos=%d enabledHighSoftLimitPos=%d\n",
+            __FILE__, __FUNCTION__, __LINE__, axis_no,
+            motor_axis[axis_no].definedLowHardLimitPos,
+            motor_axis[axis_no].definedHighHardLimitPos,
+            motor_axis[axis_no].lowSoftLimitPos,
+            motor_axis[axis_no].highSoftLimitPos,
+            motor_axis[axis_no].enabledLowSoftLimitPos,
+            motor_axis[axis_no].enabledHighSoftLimitPos);
+
+    if (!motor_axis[axis_no].definedLowHardLimitPos &&
+        !motor_axis[axis_no].definedHighHardLimitPos &&
+        motor_axis[axis_no].enabledLowSoftLimitPos &&
+        motor_axis[axis_no].enabledHighSoftLimitPos &&
+        (motor_axis[axis_no].lowSoftLimitPos < motor_axis[axis_no].highSoftLimitPos) ) {
+      setLowHardLimitPos(axis_no, motor_axis[axis_no].lowSoftLimitPos);
+      setHighHardLimitPos(axis_no, motor_axis[axis_no].highSoftLimitPos);
     }
     fprintf(stdlog,
             "%s/%s:%d axis_no=%d value=%f\n",
@@ -130,68 +208,90 @@ static void calcHomePos(int axis_no)
   }
 }
 
-double getMinPos(int axis_no)
+double getLowSoftLimitPos(int axis_no)
 {
   double value = 0;
   AXIS_CHECK_RETURN_ZERO(axis_no);
-  value = motor_axis[axis_no].valueMinPos;
+  value = motor_axis[axis_no].lowSoftLimitPos;
   fprintf(stdlog,
           "%s/%s:%d axis_no=%d value=%f\n",
           __FILE__, __FUNCTION__, __LINE__, axis_no, value);
   return value;
 }
 
-void setMinPos(int axis_no, double value)
+void setLowSoftLimitPos(int axis_no, double value)
 {
-  AXIS_CHECK_RETURN(axis_no);
-  motor_axis[axis_no].valueMinPos = value;
-  motor_axis[axis_no].definedMinPos = 1;
   fprintf(stdlog,
-          "%s/%s:%d axis_no=%d valueMinPos=%f\n",
+          "%s/%s:%d axis_no=%d value=%f\n",
           __FILE__, __FUNCTION__, __LINE__, axis_no,
-          motor_axis[axis_no].valueMinPos);
-  calcHomePos(axis_no);
+          value);
+  AXIS_CHECK_RETURN(axis_no);
+  motor_axis[axis_no].lowSoftLimitPos = value;
+  calcHardLimitsHomePos(axis_no);
 }
 
-void enableMinPos(int axis_no, int value)
+void enableLowSoftLimit(int axis_no, int value)
 {
   fprintf(stdlog,
-          "%s/%s:%d axis_no=%d (ignored) value=%d\n",
+          "%s/%s:%d axis_no=%d value=%d\n",
           __FILE__, __FUNCTION__, __LINE__, axis_no, value);
   AXIS_CHECK_RETURN(axis_no);
+  motor_axis[axis_no].enabledLowSoftLimitPos = value;
+  calcHardLimitsHomePos(axis_no);
 }
 
-double getMaxPos(int axis_no)
+void setLowHardLimitPos(int axis_no, double value)
 {
-  double value = 0;
-  AXIS_CHECK_RETURN_ZERO(axis_no);
-  value = motor_axis[axis_no].valueMaxPos;
   fprintf(stdlog,
           "%s/%s:%d axis_no=%d value=%f\n",
           __FILE__, __FUNCTION__, __LINE__, axis_no, value);
+  AXIS_CHECK_RETURN(axis_no);
+  motor_axis[axis_no].lowHardLimitPos = value;
+  motor_axis[axis_no].definedLowHardLimitPos = 1;
+}
+
+double getHighSoftLimitPos(int axis_no)
+{
+  double value = 0;
+  fprintf(stdlog,
+          "%s/%s:%d axis_no=%d value=%f\n",
+          __FILE__, __FUNCTION__, __LINE__, axis_no, value);
+  AXIS_CHECK_RETURN_ZERO(axis_no);
+  value = motor_axis[axis_no].highSoftLimitPos;
   return value;
 }
 
-void setMaxPos(int axis_no, double value)
+void setHighSoftLimitPos(int axis_no, double value)
 {
-  AXIS_CHECK_RETURN(axis_no);
-  motor_axis[axis_no].valueMaxPos = value;
-  motor_axis[axis_no].definedMaxPos = 1;
   fprintf(stdlog,
-          "%s/%s:%d axis_no=%d valueMaxPos=%f\n",
+          "%s/%s:%d axis_no=%d value=%f\n",
           __FILE__, __FUNCTION__, __LINE__, axis_no,
-          motor_axis[axis_no].valueMaxPos);
-  calcHomePos(axis_no);
+          value);
+  AXIS_CHECK_RETURN(axis_no);
+  motor_axis[axis_no].highSoftLimitPos = value;
+  calcHardLimitsHomePos(axis_no);
 }
 
-void enableMaxPos(int axis_no, int value)
+void enableHighSoftLimit(int axis_no, int value)
 {
   fprintf(stdlog,
-          "%s/%s:%d axis_no=%d (ignored) value=%d\n",
+          "%s/%s:%d axis_no=%d value=%d\n",
           __FILE__, __FUNCTION__, __LINE__, axis_no, value);
   AXIS_CHECK_RETURN(axis_no);
+  motor_axis[axis_no].enabledHighSoftLimitPos = value;
+  calcHardLimitsHomePos(axis_no);
 }
 
+void setHighHardLimitPos(int axis_no, double value)
+{
+  fprintf(stdlog,
+          "%s/%s:%d axis_no=%d value=%f\n",
+          __FILE__, __FUNCTION__, __LINE__, axis_no, value);
+  AXIS_CHECK_RETURN(axis_no);
+  motor_axis[axis_no].highHardLimitPos = value;
+  motor_axis[axis_no].definedHighHardLimitPos = 1;
+  calcHardLimitsHomePos(axis_no);
+}
 
 double getMotorPos(int axis_no)
 {
@@ -240,31 +340,56 @@ double getMotorPos(int axis_no)
   }
 
   motor_axis[axis_no].lastPollTime = timeNow;
-  if (motor_axis[axis_no].valueMaxPos > motor_axis[axis_no].valueMinPos) {
+  if (motor_axis[axis_no].highSoftLimitPos > motor_axis[axis_no].lowSoftLimitPos) {
     /* Soft limits defined: Clip the value  */
-    if (motor_axis[axis_no].definedMaxPos) {
-      if (motor_axis[axis_no].MotorPosNow > motor_axis[axis_no].valueMaxPos) {
+    if (motor_axis[axis_no].enabledHighSoftLimitPos) {
+      if (motor_axis[axis_no].MotorPosNow > motor_axis[axis_no].highSoftLimitPos) {
         fprintf(stdlog,
-                "%s/%s:%d axis_no=%d CLIP MotorPosNow=%f valueMaxPos=%f\n",
+                "%s/%s:%d axis_no=%d CLIP soft MotorPosNow=%f highSoftLimitPos=%f\n",
                 __FILE__, __FUNCTION__, __LINE__,
                 axis_no,
                 motor_axis[axis_no].MotorPosNow,
-                motor_axis[axis_no].valueMaxPos);
-        motor_axis[axis_no].MotorPosNow = motor_axis[axis_no].valueMaxPos;
+                motor_axis[axis_no].highSoftLimitPos);
+        motor_axis[axis_no].MotorPosNow = motor_axis[axis_no].highSoftLimitPos;
       }
     }
-    if (motor_axis[axis_no].definedMinPos) {
-      if (motor_axis[axis_no].MotorPosNow < motor_axis[axis_no].valueMinPos) {
+    if (motor_axis[axis_no].enabledLowSoftLimitPos) {
+      if (motor_axis[axis_no].MotorPosNow < motor_axis[axis_no].lowSoftLimitPos) {
         fprintf(stdlog,
-                "%s/%s:%d axis_no=%d CLIP MotorPosNow=%f valueMinPos=%f\n",
+                "%s/%s:%d axis_no=%d CLIP soft MotorPosNow=%f lowSoftLimitPos=%f\n",
                 __FILE__, __FUNCTION__, __LINE__,
                 axis_no,
                 motor_axis[axis_no].MotorPosNow,
-                motor_axis[axis_no].valueMinPos);
-        motor_axis[axis_no].MotorPosNow = motor_axis[axis_no].valueMinPos;
+                motor_axis[axis_no].lowSoftLimitPos);
+        motor_axis[axis_no].MotorPosNow = motor_axis[axis_no].lowSoftLimitPos;
       }
     }
-  }
+  } /* Soft limits */
+  if (motor_axis[axis_no].highHardLimitPos > motor_axis[axis_no].lowHardLimitPos) {
+    /* Hard limits defined: Clip the value  */
+    if (motor_axis[axis_no].definedHighHardLimitPos) {
+      if (motor_axis[axis_no].MotorPosNow > motor_axis[axis_no].highHardLimitPos) {
+        fprintf(stdlog,
+                "%s/%s:%d axis_no=%d CLIP hard MotorPosNow=%f highHardLimitPos=%f\n",
+                __FILE__, __FUNCTION__, __LINE__,
+                axis_no,
+                motor_axis[axis_no].MotorPosNow,
+                motor_axis[axis_no].highHardLimitPos);
+        motor_axis[axis_no].MotorPosNow = motor_axis[axis_no].highHardLimitPos;
+      }
+    }
+    if (motor_axis[axis_no].definedLowHardLimitPos) {
+      if (motor_axis[axis_no].MotorPosNow < motor_axis[axis_no].lowHardLimitPos) {
+        fprintf(stdlog,
+                "%s/%s:%d axis_no=%d CLIP hard MotorPosNow=%f lowHardLimitPos=%f\n",
+                __FILE__, __FUNCTION__, __LINE__,
+                axis_no,
+                motor_axis[axis_no].MotorPosNow,
+                motor_axis[axis_no].lowHardLimitPos);
+        motor_axis[axis_no].MotorPosNow = motor_axis[axis_no].lowHardLimitPos;
+      }
+    }
+  } /* Hard limits */
 
   if (memcmp(&motor_axis_last[axis_no].velo, &motor_axis[axis_no].velo, sizeof(motor_axis[axis_no].velo)) ||
       motor_axis_last[axis_no].MotorPosNow     != motor_axis[axis_no].MotorPosNow ||
@@ -291,6 +416,7 @@ double getMotorPos(int axis_no)
 double getEncoderPos(int axis_no)
 {
   AXIS_CHECK_RETURN_ZERO(axis_no);
+  (void)getMotorPos(axis_no);
   if (motor_axis_reported[axis_no].EncoderPos != motor_axis[axis_no].EncoderPos) {
     fprintf(stdlog, "%s/%s:%d axis_no=%d EncoderPos=%f\n",
             __FILE__, __FUNCTION__, __LINE__,
@@ -366,20 +492,18 @@ int moveHome(int axis_no,
              double acceleration)
 {
   double position = motor_axis[axis_no].HomePos;
-  double velocity = max_velocity ? max_velocity :  MOTOR_VEL_HOME;
-  double HomeVelocityAbsWanted = fabs(velocity);
+  double velocity = max_velocity ? max_velocity : motor_axis[axis_no].MaxHomeVelocityAbs;
+  velocity = fabs(velocity);
 
-  motor_axis[axis_no].HomeVelocityAbsWanted = HomeVelocityAbsWanted;
-  if (fabs(velocity) > MOTOR_VEL_HOME_MAX) {
-    velocity = 0;
+  if (fabs(velocity) > motor_axis[axis_no].MaxHomeVelocityAbs) {
+    velocity = motor_axis[axis_no].MaxHomeVelocityAbs;
   }
-
-  fprintf(stdlog, "%s/%s:%d axis_no=%d direction=%d max_velocity=%g HomeVelocityAbsWanted=%g velocity=%g acceleration=%g\n",
+  motor_axis[axis_no].HomeVelocityAbsWanted = velocity;
+  fprintf(stdlog, "%s/%s:%d axis_no=%d direction=%d max_velocity=%g velocity=%g acceleration=%g\n",
           __FILE__, __FUNCTION__, __LINE__,
           axis_no,
           direction,
           max_velocity,
-          HomeVelocityAbsWanted,
           velocity,
           acceleration);
   StopInternal(axis_no);
@@ -437,16 +561,16 @@ int motorStop(int axis_no)
 int getNegLimitSwitch(int axis_no)
 {
   motor_axis[axis_no].hitNegLimitSwitch =
-    motor_axis[axis_no].definedMinPos &&
-    (motor_axis[axis_no].MotorPosNow <= motor_axis[axis_no].valueMinPos);
+    motor_axis[axis_no].definedLowHardLimitPos &&
+    (motor_axis[axis_no].MotorPosNow <= motor_axis[axis_no].lowHardLimitPos);
 
   if (motor_axis_reported[axis_no].hitNegLimitSwitch != motor_axis[axis_no].hitNegLimitSwitch) {
-    fprintf(stdlog, "%s/%s:%d axis_no=%d definedMinPos=%d MotorPosNow=%f valueMinPos=%f hitNegLimitSwitch=%d\n",
+    fprintf(stdlog, "%s/%s:%d axis_no=%d definedLowHardLimitPos=%d MotorPosNow=%f lowHardLimitPos=%f hitNegLimitSwitch=%d\n",
             __FILE__, __FUNCTION__, __LINE__,
             axis_no,
-            motor_axis[axis_no].definedMinPos,
+            motor_axis[axis_no].definedLowHardLimitPos,
             motor_axis[axis_no].MotorPosNow,
-            motor_axis[axis_no].valueMinPos,
+            motor_axis[axis_no].lowHardLimitPos,
             motor_axis[axis_no].hitNegLimitSwitch);
     motor_axis_reported[axis_no].hitNegLimitSwitch = motor_axis[axis_no].hitNegLimitSwitch;
   }
@@ -456,16 +580,16 @@ int getNegLimitSwitch(int axis_no)
 int getPosLimitSwitch(int axis_no)
 {
   motor_axis[axis_no].hitPosLimitSwitch =
-    motor_axis[axis_no].definedMaxPos &&
-    (motor_axis[axis_no].MotorPosNow >= motor_axis[axis_no].valueMaxPos);
+    motor_axis[axis_no].definedHighHardLimitPos &&
+    (motor_axis[axis_no].MotorPosNow >= motor_axis[axis_no].highHardLimitPos);
 
   if (motor_axis_reported[axis_no].hitPosLimitSwitch != motor_axis[axis_no].hitPosLimitSwitch) {
-    fprintf(stdlog, "%s/%s:%d axis_no=%d definedMaxPos=%d MotorPosNow=%f valueMaxPos=%f hitPosLimitSwitch=%d\n",
+    fprintf(stdlog, "%s/%s:%d axis_no=%d definedHighHardLimitPos=%d MotorPosNow=%f highHardLimitPos=%f hitPosLimitSwitch=%d\n",
             __FILE__, __FUNCTION__, __LINE__,
             axis_no,
-            motor_axis[axis_no].definedMaxPos,
+            motor_axis[axis_no].definedHighHardLimitPos,
             motor_axis[axis_no].MotorPosNow,
-            motor_axis[axis_no].valueMaxPos,
+            motor_axis[axis_no].highHardLimitPos,
             motor_axis[axis_no].hitPosLimitSwitch);
     motor_axis_reported[axis_no].hitPosLimitSwitch = motor_axis[axis_no].hitPosLimitSwitch;
   }
@@ -474,13 +598,15 @@ int getPosLimitSwitch(int axis_no)
 
 int get_bError(motor_axis_no)
 {
+#if 0
   double HomeVelocityAbsWanted = motor_axis[motor_axis_no].HomeVelocityAbsWanted;
-  if (HomeVelocityAbsWanted > MOTOR_VEL_HOME_MAX) {
+  if (HomeVelocityAbsWanted > MaxHomeVelocityAbs {
     fprintf(stdlog, "%s/%s:%d axis_no=%d HomeVelocityAbsWanted=%f\n",
             __FILE__, __FUNCTION__, __LINE__,
             motor_axis_no,
            HomeVelocityAbsWanted);
     return 1;
   }
+#endif
   return 0;
 }

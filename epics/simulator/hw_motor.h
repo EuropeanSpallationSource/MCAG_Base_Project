@@ -9,17 +9,25 @@ int getAxisDone(int axis_no);
 int getAxisHome(int axis_no);
 int getAxisHomed(int axis_no);
 
+/* Where does the motor wake up after power-on */
+void hw_motor_init(void);
+void setMotorParkingPosition(int axis_no, double value);
+void setMaxHomeVelocityAbs(int axis_no, double value);
+void setMotorReverseERES(int axis_no, double value);
+
+
 double getMotorVelocity(int axis_no);
 int isMotorMoving(int axis_no);
-double getMinPos(int axis_no);
-void setMinPos(int axis_no, double value);
-void setMinPos(int axis_no, double value);
-void enableMinPos(int axis_no, int value);
 
-double getMaxPos(int axis_no);
-void enableMaxPos(int axis_no, int value);
-double getMaxPos(int axis_no);
-void setMaxPos(int axis_no, double value);
+double getLowSoftLimitPos(int axis_no);
+void   setLowSoftLimitPos(int axis_no, double value);
+void   enableLowSoftLimit(int axis_no, int value);
+void   setLowHardLimitPos(int axis_no, double value);
+
+double getHighSoftLimitPos(int axis_no);
+void   setHighSoftLimitPos(int axis_no, double value);
+void   enableHighSoftLimit(int axis_no, int value);
+void   setHighHardLimitPos(int axis_no, double value);
 
 double getMotorPos(int axis_no);
 double getEncoderPos(int axis_no);

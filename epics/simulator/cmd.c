@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include "sock-util.h"
 #include "cmd_EAT.h"
+#include "cmd_IcePAP.h"
 #include "logerr_info.h"
 #include "cmd_buf.h"
 
@@ -205,6 +206,9 @@ int handle_input_line(int socket_fd, const char *input_line, int had_cr, int had
   }
   else if ((argc > 1) && (0 == strcmp(argv1, "kill"))) {
     exit(0);
+  }
+  else if (cmd_IcePAP(argc, my_argv)) {
+    ; /* IcePAP command */
   }
   else if (argv1[0] == 'h' ||
            argv1[0] == '?') {

@@ -68,6 +68,7 @@ endif
 
 MOTOROBJS=\
  $(BIN)/cmd_EAT.o \
+ $(BIN)/cmd_IcePAP.o \
  $(BIN)/hw_motor.o
 
 TELOBJS=\
@@ -129,6 +130,13 @@ $(BIN)/cmd_EAT.o: \
  hw_motor.h \
  cmd_EAT.h
 	$(CC) -c $(CFLAGS) cmd_EAT.c -o $@
+
+$(BIN)/cmd_IcePAP.o: \
+ Makefile \
+ cmd_IcePAP.c \
+ hw_motor.h \
+ cmd_IcePAP.h
+	$(CC) -c $(CFLAGS) cmd_IcePAP.c -o $@
 
 $(BIN)/hw_motor.o: \
  Makefile \
