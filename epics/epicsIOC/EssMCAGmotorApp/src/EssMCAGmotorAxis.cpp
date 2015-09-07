@@ -169,6 +169,30 @@ asynStatus EssMCAGmotorAxis::setValueOnAxis(const char* var, int value)
   return writeReadACK();
 }
 
+/** Sets an integer or boolean value on an axis, read it back and retry if needed
+  * the values in the controller must be updated
+  * \param[in] name of the variable to be updated
+  * \param[in] name of the variable where we can read back
+  * \param[in] value the (integer) variable to be updated
+  * \param[in] number of retries
+  */
+asynStatus EssMCAGmotorAxis::setValueOnAxisVerify(const char *var, const char *rbvar,
+                                                  int value, unsigned int retryCount)
+{
+  asynStatus status = asynSuccess;
+  unsigned int counter = 0;
+  int rbvalue = 0 - value;
+  while (counter < retryCount) {
+    status = getValueFromAxis(rbvar, &rbvalue);
+    if (status) break;
+    if (rbvalue == value) break;
+    status = setValueOnAxis(var, value);
+    counter++;
+    if (status) break;
+    epicsThreadSleep(.1);
+  }
+  return status;
+}
 
 /** Sets a floating point value on an axis
   * the values in the controller must be updated
@@ -437,26 +461,7 @@ asynStatus EssMCAGmotorAxis::updateSoftLimitsIfDirty(int line)
   */
 asynStatus EssMCAGmotorAxis::enableAmplifier(int on)
 {
-  asynStatus status = asynSuccess;
-  unsigned int counter = 0;
-  on = on ? 1 : 0; /* Normalize 0/1 */
-  if (drvlocal.dirty.bEnabled) status = getValueFromAxis("bEnabled", &drvlocal.bEnabled);
-  while ((drvlocal.bEnabled != on) && counter < 100) {
-    status = setValueOnAxis("bEnable", on); /* Enable/Disable the amplifier */
-    if (status) break;
-    status = getValueFromAxis("bEnabled", &drvlocal.bEnabled);
-    if (status) break;
-    counter++;
-    epicsThreadSleep(.2);
-  }
-  asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-	    "enableAmplifier(%d) on=%d status=%s (%d) bEnabled=%d counter=%d\n",
-	    axisNo_,
-	    on,
-	    pasynManager->strStatus(status), status,
-	    drvlocal.bEnabled, counter);
-  if (status == asynSuccess) drvlocal.dirty.bEnabled = 0;
-  return status;
+  return setValueOnAxisVerify("bEnable", "bEnabled", on ? 1 : 0, 100);
 }
 
 /** Stop the axis
@@ -572,8 +577,6 @@ asynStatus EssMCAGmotorAxis::poll(bool *moving)
               pasynManager->strStatus(comStatus), (int)comStatus);
     goto skip;
   }
-  drvlocal.bEnabled = st_axis_status.bEnabled;
-
   setIntegerParam(pC_->motorStatusHomed_, st_axis_status.bHomed);
   setIntegerParam(pC_->motorStatusProblem_, st_axis_status.bError);
   setIntegerParam(pC_->motorStatusAtHome_, st_axis_status.bHomeSensor);

@@ -69,13 +69,11 @@ private:
     int axisFlags;
     int oldMotorStatusProblem;
     int oldNowMoving;
-    int bEnabled;
     unsigned int waitNumPollsBeforeReady;
     /* Which values have changed in the EPICS IOC, but are not updated in the
        motion controller */
     struct {
       unsigned int motorLimits      :1;
-      unsigned int bEnabled         :1;
       unsigned int mustStop         :1;
       unsigned int reportDisconnect :1;
       unsigned int stAxisStatus_V00 :1;
@@ -94,6 +92,8 @@ private:
 
   asynStatus writeReadACK(void);
   asynStatus setValueOnAxis(const char* var, int value);
+  asynStatus setValueOnAxisVerify(const char *var, const char *rbvar, 
+                                  int value, unsigned int retryCount);
   asynStatus setValueOnAxis(const char* var, double value);
   asynStatus setValueOnAxis(unsigned adsport,
 			    unsigned group_no, 
