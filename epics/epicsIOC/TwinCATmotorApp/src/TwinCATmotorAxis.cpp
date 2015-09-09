@@ -1,5 +1,5 @@
 /*
-FILENAME... EssMCAGmotorAxis.cpp
+FILENAME... TwinCATmotorAxis.cpp
 */
 
 #include <stdio.h>
@@ -8,24 +8,24 @@ FILENAME... EssMCAGmotorAxis.cpp
 
 #include <epicsThread.h>
 
-#include "EssMCAGmotor.h"
+#include "TwinCATmotor.h"
 
 #ifndef ASYN_TRACE_INFO
 #define ASYN_TRACE_INFO      0x0040
 #endif
 
 //
-// These are the EssMCAGmotorAxis methods
+// These are the TwinCATmotorAxis methods
 //
 
-/** Creates a new EssMCAGmotorAxis object.
-  * \param[in] pC Pointer to the EssMCAGmotorController to which this axis belongs.
+/** Creates a new TwinCATmotorAxis object.
+  * \param[in] pC Pointer to the TwinCATmotorController to which this axis belongs.
   * \param[in] axisNo Index number of this axis, range 1 to pC->numAxes_. (0 is not used)
   *
   *
   * Initializes register numbers, etc.
   */
-EssMCAGmotorAxis::EssMCAGmotorAxis(EssMCAGmotorController *pC, int axisNo,
+TwinCATmotorAxis::TwinCATmotorAxis(TwinCATmotorController *pC, int axisNo,
 				   int axisFlags, const char *axisOptionsStr)
   : asynMotorAxis(pC, axisNo),
     pC_(pC)
@@ -62,19 +62,19 @@ EssMCAGmotorAxis::EssMCAGmotorAxis(EssMCAGmotorController *pC, int axisNo,
 }
 
 
-extern "C" int EssMCAGmotorCreateAxis(const char *EssMCAGmotorName, int axisNo,
+extern "C" int TwinCATmotorCreateAxis(const char *TwinCATmotorName, int axisNo,
 				      int axisFlags, const char *axisOptionsStr)
 {
-  EssMCAGmotorController *pC;
+  TwinCATmotorController *pC;
 
-  pC = (EssMCAGmotorController*) findAsynPortDriver(EssMCAGmotorName);
+  pC = (TwinCATmotorController*) findAsynPortDriver(TwinCATmotorName);
   if (!pC)
   {
-    printf("Error port %s not found\n", EssMCAGmotorName);
+    printf("Error port %s not found\n", TwinCATmotorName);
     return asynError;
   }
   pC->lock();
-  new EssMCAGmotorAxis(pC, axisNo, axisFlags, axisOptionsStr);
+  new TwinCATmotorAxis(pC, axisNo, axisFlags, axisOptionsStr);
   pC->unlock();
   return asynSuccess;
 }
@@ -85,10 +85,10 @@ extern "C" int EssMCAGmotorCreateAxis(const char *EssMCAGmotorName, int axisNo,
   *
   * Sets the dirty bits
   */
-void EssMCAGmotorAxis::handleStatusChange(asynStatus newStatus)
+void TwinCATmotorAxis::handleStatusChange(asynStatus newStatus)
 {
   asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
-            "EssMCAGmotorAxis::handleStatusChange status=%s (%d)\n",
+            "TwinCATmotorAxis::handleStatusChange status=%s (%d)\n",
             pasynManager->strStatus(newStatus), (int)newStatus);
   if (newStatus != asynSuccess) {
     memset(&drvlocal.dirty, 0xFF, sizeof(drvlocal.dirty));
@@ -112,7 +112,7 @@ void EssMCAGmotorAxis::handleStatusChange(asynStatus newStatus)
   *
   * After printing device-specific information calls asynMotorAxis::report()
   */
-void EssMCAGmotorAxis::report(FILE *fp, int level)
+void TwinCATmotorAxis::report(FILE *fp, int level)
 {
   if (level > 0) {
     fprintf(fp, "  axis %d\n", axisNo_);
@@ -130,7 +130,7 @@ void EssMCAGmotorAxis::report(FILE *fp, int level)
   *
   * When the communictaion fails ot times out, writeReadOnErrorDisconnect() is called
   */
-asynStatus EssMCAGmotorAxis::writeReadACK(void)
+asynStatus TwinCATmotorAxis::writeReadACK(void)
 {
   asynStatus status = pC_->writeReadOnErrorDisconnect();
   switch (status) {
@@ -163,7 +163,7 @@ asynStatus EssMCAGmotorAxis::writeReadACK(void)
   * \param[in] value the (integer) variable to be updated
   *
   */
-asynStatus EssMCAGmotorAxis::setValueOnAxis(const char* var, int value)
+asynStatus TwinCATmotorAxis::setValueOnAxis(const char* var, int value)
 {
   sprintf(pC_->outString_, "Main.M%d.%s=%d", axisNo_, var, value);
   return writeReadACK();
@@ -176,7 +176,7 @@ asynStatus EssMCAGmotorAxis::setValueOnAxis(const char* var, int value)
   * \param[in] value the (integer) variable to be updated
   * \param[in] number of retries
   */
-asynStatus EssMCAGmotorAxis::setValueOnAxisVerify(const char *var, const char *rbvar,
+asynStatus TwinCATmotorAxis::setValueOnAxisVerify(const char *var, const char *rbvar,
                                                   int value, unsigned int retryCount)
 {
   asynStatus status = asynSuccess;
@@ -200,13 +200,13 @@ asynStatus EssMCAGmotorAxis::setValueOnAxisVerify(const char *var, const char *r
   * \param[in] value the (floating point) variable to be updated
   *
   */
-asynStatus EssMCAGmotorAxis::setValueOnAxis(const char* var, double value)
+asynStatus TwinCATmotorAxis::setValueOnAxis(const char* var, double value)
 {
   sprintf(pC_->outString_, "Main.M%d.%s=%f", axisNo_, var, value);
   return writeReadACK();
 }
 
-asynStatus EssMCAGmotorAxis::setValueOnAxis(unsigned adsport,
+asynStatus TwinCATmotorAxis::setValueOnAxis(unsigned adsport,
 					    unsigned group_no,
 					    unsigned offset_in_group,
 					    int value)
@@ -216,7 +216,7 @@ asynStatus EssMCAGmotorAxis::setValueOnAxis(unsigned adsport,
   return writeReadACK();
 }
 
-asynStatus EssMCAGmotorAxis::setValueOnAxis(unsigned adsport,
+asynStatus TwinCATmotorAxis::setValueOnAxis(unsigned adsport,
 					    unsigned group_no,
 					    unsigned offset_in_group,
 					    double value)
@@ -231,7 +231,7 @@ asynStatus EssMCAGmotorAxis::setValueOnAxis(unsigned adsport,
   * \param[in] pointer to the integer result
   *
   */
-asynStatus EssMCAGmotorAxis::getValueFromAxis(const char* var, int *value)
+asynStatus TwinCATmotorAxis::getValueFromAxis(const char* var, int *value)
 {
   asynStatus comStatus;
   int res;
@@ -269,7 +269,7 @@ asynStatus EssMCAGmotorAxis::getValueFromAxis(const char* var, int *value)
   * \param[in] pointer to the double result
   *
   */
-asynStatus EssMCAGmotorAxis::getValueFromAxis(const char* var, double *value)
+asynStatus TwinCATmotorAxis::getValueFromAxis(const char* var, double *value)
 {
   asynStatus comStatus;
   int nvals;
@@ -289,7 +289,7 @@ asynStatus EssMCAGmotorAxis::getValueFromAxis(const char* var, double *value)
   return asynSuccess;
 }
 
-asynStatus EssMCAGmotorAxis::getValueFromController(const char* var, double *value)
+asynStatus TwinCATmotorAxis::getValueFromController(const char* var, double *value)
 {
   asynStatus comStatus;
   int nvals;
@@ -314,7 +314,7 @@ asynStatus EssMCAGmotorAxis::getValueFromController(const char* var, double *val
   * \param[in] acceleration, seconds to maximum velocity
   *
   */
-asynStatus EssMCAGmotorAxis::sendVelocityAndAccelExecute(double maxVelocity, double acceleration)
+asynStatus TwinCATmotorAxis::sendVelocityAndAccelExecute(double maxVelocity, double acceleration)
 {
   asynStatus status;
   /* We don't use minVelocity */
@@ -338,7 +338,7 @@ asynStatus EssMCAGmotorAxis::sendVelocityAndAccelExecute(double maxVelocity, dou
   * \param[in] acceleration, seconds to maximum velocity
   *
   */
-asynStatus EssMCAGmotorAxis::move(double position, int relative, double minVelocity, double maxVelocity, double acceleration)
+asynStatus TwinCATmotorAxis::move(double position, int relative, double minVelocity, double maxVelocity, double acceleration)
 {
   asynStatus status = asynSuccess;
 
@@ -359,7 +359,7 @@ asynStatus EssMCAGmotorAxis::move(double position, int relative, double minVeloc
   * \param[in] forwards (0=backwards, otherwise forwards)
   *
   */
-asynStatus EssMCAGmotorAxis::home(double minVelocity, double maxVelocity, double acceleration, int forwards)
+asynStatus TwinCATmotorAxis::home(double minVelocity, double maxVelocity, double acceleration, int forwards)
 {
   asynStatus status = asynSuccess;
 
@@ -384,7 +384,7 @@ asynStatus EssMCAGmotorAxis::home(double minVelocity, double maxVelocity, double
   * \param[in] acceleration, seconds to maximum velocity
   *
   */
-asynStatus EssMCAGmotorAxis::moveVelocity(double minVelocity, double maxVelocity, double acceleration)
+asynStatus TwinCATmotorAxis::moveVelocity(double minVelocity, double maxVelocity, double acceleration)
 {
   asynStatus status = asynSuccess;
 
@@ -400,7 +400,7 @@ asynStatus EssMCAGmotorAxis::moveVelocity(double minVelocity, double maxVelocity
 /** Set the high soft-limit on an axis
   *
   */
-asynStatus EssMCAGmotorAxis::setMotorHighLimitOnAxis(void)
+asynStatus TwinCATmotorAxis::setMotorHighLimitOnAxis(void)
 {
   asynStatus status = asynSuccess;
   int enable = drvlocal.defined.motorHighLimit;
@@ -416,7 +416,7 @@ asynStatus EssMCAGmotorAxis::setMotorHighLimitOnAxis(void)
 /** Set the low soft-limit on an axis
   *
   */
-asynStatus EssMCAGmotorAxis::setMotorLowLimitOnAxis(void)
+asynStatus TwinCATmotorAxis::setMotorLowLimitOnAxis(void)
 {
   asynStatus status = asynSuccess;
   int enable = drvlocal.defined.motorLowLimit;
@@ -431,7 +431,7 @@ asynStatus EssMCAGmotorAxis::setMotorLowLimitOnAxis(void)
 /** Set the low soft-limit on an axis
   *
   */
-asynStatus EssMCAGmotorAxis::setMotorLimitsOnAxis(void)
+asynStatus TwinCATmotorAxis::setMotorLimitsOnAxis(void)
 {
   asynStatus status = asynError;
   asynPrint(pC_->pasynUserController_, ASYN_TRACEIO_DRIVER, "\n");
@@ -447,7 +447,7 @@ asynStatus EssMCAGmotorAxis::setMotorLimitsOnAxis(void)
 /** Update the soft limits in the controller, if needed
   *
   */
-asynStatus EssMCAGmotorAxis::updateSoftLimitsIfDirty(int line)
+asynStatus TwinCATmotorAxis::updateSoftLimitsIfDirty(int line)
 {
   asynPrint(pC_->pasynUserController_, ASYN_TRACEIO_DRIVER,
             "called from %d\n",line);
@@ -459,7 +459,7 @@ asynStatus EssMCAGmotorAxis::updateSoftLimitsIfDirty(int line)
 /** Enable the amplifier on an axis
   *
   */
-asynStatus EssMCAGmotorAxis::enableAmplifier(int on)
+asynStatus TwinCATmotorAxis::enableAmplifier(int on)
 {
   return setValueOnAxisVerify("bEnable", "bEnabled", on ? 1 : 0, 100);
 }
@@ -467,7 +467,7 @@ asynStatus EssMCAGmotorAxis::enableAmplifier(int on)
 /** Stop the axis
   *
   */
-asynStatus EssMCAGmotorAxis::stopAxisInternal(const char *function_name, double acceleration)
+asynStatus TwinCATmotorAxis::stopAxisInternal(const char *function_name, double acceleration)
 {
   asynStatus status = setValueOnAxis("bExecute", 0); /* Stop executing */
   if (status == asynSuccess) {
@@ -483,14 +483,14 @@ asynStatus EssMCAGmotorAxis::stopAxisInternal(const char *function_name, double 
 /** Stop the axis, called by motor Record
   *
   */
-asynStatus EssMCAGmotorAxis::stop(double acceleration )
+asynStatus TwinCATmotorAxis::stop(double acceleration )
 {
   return stopAxisInternal(__FUNCTION__, acceleration);
 }
 
 
 
-asynStatus EssMCAGmotorAxis::pollAll(bool *moving, st_axis_status_type *pst_axis_status)
+asynStatus TwinCATmotorAxis::pollAll(bool *moving, st_axis_status_type *pst_axis_status)
 {
   asynStatus comStatus;
 
@@ -550,7 +550,7 @@ asynStatus EssMCAGmotorAxis::pollAll(bool *moving, st_axis_status_type *pst_axis
   * It calls setIntegerParam() and setDoubleParam() for each item that it polls,
   * and then calls callParamCallbacks() at the end.
   * \param[out] moving A flag that is set indicating that the axis is moving (true) or done (false). */
-asynStatus EssMCAGmotorAxis::poll(bool *moving)
+asynStatus TwinCATmotorAxis::poll(bool *moving)
 {
   asynStatus comStatus;
   int nowMoving = 0;
@@ -639,7 +639,7 @@ skip:
   return asynError;
 }
 
-asynStatus EssMCAGmotorAxis::setIntegerParam(int function, int value)
+asynStatus TwinCATmotorAxis::setIntegerParam(int function, int value)
 {
   asynStatus status;
   if (function == pC_->motorClosedLoop_) {
@@ -660,7 +660,7 @@ asynStatus EssMCAGmotorAxis::setIntegerParam(int function, int value)
   * When the IOC starts, we will send the soft limits to the controller.
   * When a soft limit is changed, and update is send them to the controller.
   */
-asynStatus EssMCAGmotorAxis::setDoubleParam(int function, double value)
+asynStatus TwinCATmotorAxis::setDoubleParam(int function, double value)
 {
   asynStatus status;
   if (function == pC_->motorHighLimit_) {
