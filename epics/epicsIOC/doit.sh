@@ -1,5 +1,5 @@
 #!/bin/sh
-APPXX=EssMCAGmotor
+APPXX=TwinCATmotor
 export APPXX
 if test -z "$EPICS_BASE";then
   echo >&2 "EPICS_BASE" is not set
