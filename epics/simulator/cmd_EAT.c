@@ -22,9 +22,25 @@ typedef struct
 } cmd_Motor_cmd_type;
 
 static cmd_Motor_cmd_type cmd_Motor_cmd[MAX_AXES];
-static void init(void)
+static void init_axis(int axis_no)
 {
-  ;
+  static char init_done[MAX_AXES];
+  const double MRES = 1;
+  const double ERES = 1.0/57;
+  double ReverseMRES = (double)1.0/MRES;
+
+  if (axis_no >= MAX_AXES || axis_no < 0) {
+    return;
+  }
+  if (!init_done[axis_no]) {
+    hw_motor_init(axis_no);
+    setMotorReverseERES(axis_no, MRES/ERES);
+    setMotorParkingPosition(axis_no, -64 * ReverseMRES); /* steps */
+    setMaxHomeVelocityAbs(axis_no, 1 * ReverseMRES);
+    setLowHardLimitPos(axis_no,  -141.0 * ReverseMRES);
+    setHighHardLimitPos(axis_no, 14.0 * ReverseMRES);
+    init_done[axis_no] = 1;
+  }
 }
 
 static const char * const ADSPORT_equals_str = "ADSPORT=";
