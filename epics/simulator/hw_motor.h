@@ -2,15 +2,16 @@
 #define MOTOR_H
 
 #define MAX_AXES 8
-#define AXIS_CHECK_RETURN(_axis) {init(); if (((_axis) <= 0) || ((_axis) >=MAX_AXES)) return;}
-#define AXIS_CHECK_RETURN_ZERO(_axis) {init(); if (((_axis) <= 0) || ((_axis) >=MAX_AXES)) return 0;}
+#define AXIS_CHECK_RETURN(_axis) {init_axis(_axis); if (((_axis) <= 0) || ((_axis) >=MAX_AXES)) return;}
+#define AXIS_CHECK_RETURN_ZERO(_axis) {init_axis(_axis); if (((_axis) <= 0) || ((_axis) >=MAX_AXES)) return 0;}
 
 int getAxisDone(int axis_no);
 int getAxisHome(int axis_no);
 int getAxisHomed(int axis_no);
 
+static void init_axis(int);
+void hw_motor_init(int);
 /* Where does the motor wake up after power-on */
-void hw_motor_init(void);
 void setMotorParkingPosition(int axis_no, double value);
 void setMaxHomeVelocityAbs(int axis_no, double value);
 void setMotorReverseERES(int axis_no, double value);

@@ -62,31 +62,31 @@ static double getMotorPosFromEncoderPos(int axis_no, double EncoderPos)
 }
 #endif
 
-void hw_motor_init(void)
+void hw_motor_init(int axis_no)
 {
-  static int init_done;
-  if (!init_done) {
-    unsigned int axis_no;
-    memset(motor_axis, 0, sizeof(motor_axis));
-    memset(motor_axis_last, 0, sizeof(motor_axis_last));
-    memset(motor_axis_reported, 0, sizeof(motor_axis_reported));
-    for (axis_no=0; axis_no < MAX_AXES; axis_no++) {
-      motor_axis[axis_no].HomePos = MOTOR_POS_HOME;
-      motor_axis[axis_no].MaxHomeVelocityAbs = MOTOR_VEL_HOME_MAX;
-      setMotorParkingPosition(axis_no, MOTOR_PARK_POS);
-      motor_axis[axis_no].ReverseERES = MOTOR_REV_ERES;
-      motor_axis[axis_no].EncoderPos = getEncoderPosFromMotorPos(axis_no, motor_axis[axis_no].MotorPosNow);
-      motor_axis_last[axis_no].EncoderPos  = motor_axis[axis_no].EncoderPos;
-      motor_axis_last[axis_no].MotorPosNow = motor_axis[axis_no].MotorPosNow;
-
-    }
-    init_done = 1;
+  static char init_done[MAX_AXES];
+  if (axis_no >= MAX_AXES || axis_no < 0) {
+    return;
+  }
+  if (!init_done[axis_no]) {
+    memset(&motor_axis[axis_no], 0, sizeof(motor_axis[axis_no]));
+    memset(&motor_axis_last[axis_no], 0, sizeof(motor_axis_last[axis_no]));
+    memset(&motor_axis_reported[axis_no], 0, sizeof(motor_axis_reported[axis_no]));
+    motor_axis[axis_no].HomePos = MOTOR_POS_HOME;
+    motor_axis[axis_no].MaxHomeVelocityAbs = MOTOR_VEL_HOME_MAX;
+    setMotorParkingPosition(axis_no, MOTOR_PARK_POS);
+    motor_axis[axis_no].ReverseERES = MOTOR_REV_ERES;
+    motor_axis[axis_no].EncoderPos = getEncoderPosFromMotorPos(axis_no, motor_axis[axis_no].MotorPosNow);
+    motor_axis_last[axis_no].EncoderPos  = motor_axis[axis_no].EncoderPos;
+    motor_axis_last[axis_no].MotorPosNow = motor_axis[axis_no].MotorPosNow;
+    init_done[axis_no] = 1;
   }
 }
 
-static void init(void)
+static void init_axis(int axis_no)
 {
-  hw_motor_init();
+  (void)axis_no;
+  hw_motor_init(axis_no);
 }
 
 void setMotorParkingPosition(int axis_no, double value)

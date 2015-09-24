@@ -20,19 +20,21 @@ typedef struct
 
 static cmd_Motor_cmd_type cmd_Motor_cmd[MAX_AXES];
 
-static void init(void)
+static void init_axis(int axis_no)
 {
-  static unsigned int axis_no = 0;
+  static char init_done[MAX_AXES];
   const static double ReverseMRES = (double)1.0/0.03;
-  if (axis_no) {
-    return; /* We have been here */
+
+  if (axis_no >= MAX_AXES || axis_no < 0) {
+    return;
   }
-  hw_motor_init();
-  for (axis_no = 1; axis_no < MAX_AXES; axis_no++) {
+  if (!init_done[axis_no]) {
+    hw_motor_init(axis_no);
     setMotorParkingPosition(axis_no, 0); /* steps */
     setMaxHomeVelocityAbs(axis_no, 66);  /* 200 steps/sec in IcePAP */
     setLowHardLimitPos(axis_no, -1.0 * ReverseMRES);
     setHighHardLimitPos(axis_no, 173.0 * ReverseMRES);
+    init_done[axis_no] = 1;
   }
 }
 
