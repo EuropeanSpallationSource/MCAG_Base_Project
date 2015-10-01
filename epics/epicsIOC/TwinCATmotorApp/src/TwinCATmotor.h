@@ -62,7 +62,6 @@ private:
   TwinCATmotorController *pC_;          /**< Pointer to the asynMotorController to which this axis belongs.
                                    *   Abbreviated because it is used very frequently */
   struct {
-    double mres;
     double motorHighLimit;
     double motorLowLimit;
     double oldPosition;

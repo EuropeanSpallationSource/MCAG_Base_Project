@@ -318,14 +318,7 @@ asynStatus TwinCATmotorAxis::sendVelocityAndAccelExecute(double maxVelocity, dou
 {
   asynStatus status;
   /* We don't use minVelocity */
-
-  if (!drvlocal.mres) {
-    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-	      "sendVelocityAndAccelExecute(%d) mres==0.0\n",  axisNo_);
-    return asynError; /* No mres, no move */
-  }
-
-  status = setValueOnAxis("fVelocity", maxVelocity * drvlocal.mres);
+  status = setValueOnAxis("fVelocity", maxVelocity);
   /* We don't send acceleration yet:
      in the motorRecord acceleration is defined "as time in seconds to reach maxVelocity",
      the motion controllers use "mm/sec2" or so.
@@ -352,7 +345,7 @@ asynStatus TwinCATmotorAxis::move(double position, int relative, double minVeloc
   if (status == asynSuccess) status = stopAxisInternal(__FUNCTION__, 0);
   if (status == asynSuccess) status = updateSoftLimitsIfDirty(__LINE__);
   if (status == asynSuccess) status = setValueOnAxis("nCommand", relative ? 2 : 3);
-  if (status == asynSuccess) status = setValueOnAxis("fPosition", position * drvlocal.mres);
+  if (status == asynSuccess) status = setValueOnAxis("fPosition", position);
   if (status == asynSuccess) status = sendVelocityAndAccelExecute(maxVelocity, acceleration);
 
   return status;
@@ -376,7 +369,7 @@ asynStatus TwinCATmotorAxis::home(double minVelocity, double maxVelocity, double
   if (status == asynSuccess) status = updateSoftLimitsIfDirty(__LINE__);
   if ((drvlocal.axisFlags & AMPLIFIER_ON_FLAG_WHEN_HOMING) &&
       (status == asynSuccess)) status = enableAmplifier(1);
-  if (status == asynSuccess) status = setValueOnAxis("fPosition", 0 * drvlocal.mres);
+  if (status == asynSuccess) status = setValueOnAxis("fPosition", 0);
   if (status == asynSuccess) status = setValueOnAxis("nCommand", 10);
   if (status == asynSuccess) status = setValueOnAxis("nCmdData", 0);
   if (status == asynSuccess) status = sendVelocityAndAccelExecute(maxVelocity, acceleration);
@@ -413,7 +406,7 @@ asynStatus TwinCATmotorAxis::setMotorHighLimitOnAxis(void)
   int enable = drvlocal.defined.motorHighLimit;
   if (drvlocal.motorHighLimit <= drvlocal.motorLowLimit) enable = 0;
   if (enable && (status == asynSuccess)) {
-    status = setValueOnAxis(501, 0x5000, 0xE, drvlocal.motorHighLimit * drvlocal.mres);
+    status = setValueOnAxis(501, 0x5000, 0xE, drvlocal.motorHighLimit);
   }
   if (status == asynSuccess) status = setValueOnAxis(501, 0x5000, 0xC, enable);
   return status;
@@ -429,7 +422,7 @@ asynStatus TwinCATmotorAxis::setMotorLowLimitOnAxis(void)
   int enable = drvlocal.defined.motorLowLimit;
   if (drvlocal.motorHighLimit <= drvlocal.motorLowLimit) enable = 0;
   if (enable && (status == asynSuccess)) {
-    status = setValueOnAxis(501, 0x5000, 0xD, drvlocal.motorLowLimit * drvlocal.mres);
+    status = setValueOnAxis(501, 0x5000, 0xD, drvlocal.motorLowLimit);
   }
   if (status == asynSuccess) status = setValueOnAxis(501, 0x5000, 0xB, enable);
   return status;
@@ -598,9 +591,7 @@ asynStatus TwinCATmotorAxis::poll(bool *moving)
     setIntegerParam(pC_->motorStatusDirection_, 0);
   }
   drvlocal.oldPosition = st_axis_status.fActPosition;
-  if (drvlocal.mres) {
-    setDoubleParam(pC_->motorPosition_, st_axis_status.fActPosition / drvlocal.mres);
-  }
+  setDoubleParam(pC_->motorPosition_, st_axis_status.fActPosition);
   if (drvlocal.externalEncoderStr) {
     double fEncPosition;
     comStatus = getValueFromController(drvlocal.externalEncoderStr, &fEncPosition);
@@ -686,10 +677,6 @@ asynStatus TwinCATmotorAxis::setDoubleParam(int function, double value)
     drvlocal.defined.motorLowLimit = 1;
     drvlocal.dirty.motorLimits = 1;
     if (drvlocal.defined.motorHighLimit) setMotorLimitsOnAxis();
-  } else if (function == pC_->motorRecResolution_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorRecResolution_=%f\n", value);
-      drvlocal.mres = value;
   }
 
   // Call the base class method

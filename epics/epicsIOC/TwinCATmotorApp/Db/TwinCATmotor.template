@@ -23,16 +23,6 @@ record(motor,"$(P)$(M)")
 	field(TWV,"1")
 }
 
-# Motor resolution for this axis
-record(ao,"$(P)$(M)Resolution") {
-    field(DESC, "$(M) resolution")
-    field(DOL,  "$(P)$(M).MRES CP MS")
-    field(OMSL, "closed_loop")
-    field(DTYP, "asynFloat64")
-    field(OUT,  "@asyn($(PORT),$(ADDR))MOTOR_REC_RESOLUTION")
-    field(PREC, "$(PREC)")
-}
-
 record (asyn, "$(P)$(PORT):asyn")
 {
 }
