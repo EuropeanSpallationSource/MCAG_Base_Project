@@ -13,6 +13,7 @@ static void init_axis(int);
 void hw_motor_init(int);
 /* Where does the motor wake up after power-on */
 void setMotorParkingPosition(int axis_no, double value);
+void setHomePos(int axis_no, double value);
 void setMaxHomeVelocityAbs(int axis_no, double value);
 void setMotorReverseERES(int axis_no, double value);
 
