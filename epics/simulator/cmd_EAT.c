@@ -14,7 +14,6 @@ typedef struct
 {
   int    command_no;
   unsigned nCmdData;
-  int    bEnabled;
   int    bExecute;
   double position;
   double velocity;
@@ -36,7 +35,7 @@ static void init_axis(int axis_no)
     hw_motor_init(axis_no);
     setMotorReverseERES(axis_no, MRES/ERES);
     setMotorParkingPosition(axis_no, -64 * ReverseMRES); /* steps */
-    setMaxHomeVelocityAbs(axis_no, 1 * ReverseMRES);
+    setMaxHomeVelocityAbs(axis_no, 3 * ReverseMRES);
     setLowHardLimitPos(axis_no,  -141.0 * ReverseMRES);
     setHighHardLimitPos(axis_no, 14.0 * ReverseMRES);
     init_done[axis_no] = 1;
@@ -282,7 +281,7 @@ static void motorHandleOneArg(const char *myarg_1)
 
   /* bEnable? bEnabled? Both are the same in the simulator */
   if (!strcmp(myarg_1, "bEnable?") || !strcmp(myarg_1, "bEnabled?")) {
-    cmd_buf_printf("%d",cmd_Motor_cmd[motor_axis_no].bEnabled);
+    cmd_buf_printf("%d",getAmplifierOn(motor_axis_no));
     return;
   }
   /* bExecute? */
@@ -333,7 +332,7 @@ static void motorHandleOneArg(const char *myarg_1)
   }
   /* stAxisStatus? */
   if (0 == strcmp(myarg_1, "stAxisStatus?")) {
-    int bEnable = cmd_Motor_cmd[motor_axis_no].bEnabled;
+    int bEnable = getAmplifierOn(motor_axis_no);
     int bReset = 0;
     int bExecute = cmd_Motor_cmd[motor_axis_no].bExecute;
     unsigned nCommand = 0;
@@ -348,7 +347,7 @@ static void motorHandleOneArg(const char *myarg_1)
     int bLimitBwd = getNegLimitSwitch(motor_axis_no) ? 0 : 1;
     double fOverride = 0;
     int bHomeSensor = getAxisHome(motor_axis_no);
-    int bEnabled = cmd_Motor_cmd[motor_axis_no].bEnabled;
+    int bEnabled = bEnable;
     int bError = get_bError(motor_axis_no);
     unsigned nErrorId = 0;
     double fActVelocity = getMotorVelocity(motor_axis_no);
@@ -426,7 +425,7 @@ static void motorHandleOneArg(const char *myarg_1)
   /* bEnable= */
   nvals = sscanf(myarg_1, "bEnable=%d", &iValue);
   if (nvals == 1) {
-    cmd_Motor_cmd[motor_axis_no].bEnabled = iValue;
+    setAmplifierPercent(motor_axis_no, iValue ? 100 : 0);
     cmd_buf_printf("OK");
     return;
   }
@@ -448,52 +447,35 @@ static void motorHandleOneArg(const char *myarg_1)
             direction = 0;
             cmd_Motor_cmd[motor_axis_no].velocity = -cmd_Motor_cmd[motor_axis_no].velocity;
           }
-          if (cmd_Motor_cmd[motor_axis_no].bEnabled) {
-            (void)moveVelocity(motor_axis_no,
-                               direction,
-                               cmd_Motor_cmd[motor_axis_no].velocity,
-                               cmd_Motor_cmd[motor_axis_no].acceleration);
-          } else {
-            fprintf(stdout, "%s/%s:%d bEnable=0\n",
-                    __FILE__, __FUNCTION__, __LINE__);
-          }
+          (void)moveVelocity(motor_axis_no,
+                             direction,
+                             cmd_Motor_cmd[motor_axis_no].velocity,
+                             cmd_Motor_cmd[motor_axis_no].acceleration);
           cmd_buf_printf("OK");
         }
         break;
         case 2:
-          if (cmd_Motor_cmd[motor_axis_no].bEnabled) {
-            (void)movePosition(motor_axis_no,
-                               cmd_Motor_cmd[motor_axis_no].position,
-                               1, /* int relative, */
-                               cmd_Motor_cmd[motor_axis_no].velocity,
-                               cmd_Motor_cmd[motor_axis_no].acceleration);
-          } else {
-            fprintf(stdout, "%s/%s:%d bEnable=0\n",
-                    __FILE__, __FUNCTION__, __LINE__);
-          }
+          (void)movePosition(motor_axis_no,
+                             cmd_Motor_cmd[motor_axis_no].position,
+                             1, /* int relative, */
+                             cmd_Motor_cmd[motor_axis_no].velocity,
+                             cmd_Motor_cmd[motor_axis_no].acceleration);
           cmd_buf_printf("OK");
           break;
         case 3:
-          if (cmd_Motor_cmd[motor_axis_no].bEnabled) {
-            (void)movePosition(motor_axis_no,
-                               cmd_Motor_cmd[motor_axis_no].position,
-                               0, /* int relative, */
-                               cmd_Motor_cmd[motor_axis_no].velocity,
-                               cmd_Motor_cmd[motor_axis_no].acceleration);
-          } else {
-            fprintf(stdout, "%s/%s:%d bEnable=0\n",
-                    __FILE__, __FUNCTION__, __LINE__);
-          }
+          (void)movePosition(motor_axis_no,
+                             cmd_Motor_cmd[motor_axis_no].position,
+                             0, /* int relative, */
+                             cmd_Motor_cmd[motor_axis_no].velocity,
+                             cmd_Motor_cmd[motor_axis_no].acceleration);
           cmd_buf_printf("OK");
           break;
         case 10:
         {
-          if (cmd_Motor_cmd[motor_axis_no].bEnabled) {
-            (void)moveHome(motor_axis_no,
-                           0, /* direction, */
-                           cmd_Motor_cmd[motor_axis_no].velocity,
-                           cmd_Motor_cmd[motor_axis_no].acceleration);
-          }
+          (void)moveHome(motor_axis_no,
+                         0, /* direction, */
+                         cmd_Motor_cmd[motor_axis_no].velocity,
+                         cmd_Motor_cmd[motor_axis_no].acceleration);
           cmd_buf_printf("OK");
         }
         break;
