@@ -16,7 +16,7 @@ if ! which nosetests >/dev/null 2>&1; then
       if which yum >/dev/null 2>&1; then
         sudo yum install python-pip
       fi
-      if which apt >/dev/null 2>&1; then
+      if which apt-get >/dev/null 2>&1; then
         sudo apt-get install python-pip
       fi
     fi
