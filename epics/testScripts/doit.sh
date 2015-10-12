@@ -1,21 +1,45 @@
 #!/bin/sh
 
-if ! which nosetests >/dev/null 2>&1; then
+if test -z "$PYEPICS_LIBCA"; then
+    MYLIB=$EPICS_BASE/lib/$EPICS_HOST_ARCH/libca.so
+    if test -r "$MYLIB"; then
+	PYEPICS_LIBCA=$MYLIB
+	export PYEPICS_LIBCA
+    fi
+fi &&
+if ! python -c 'import epics' >/dev/null 2>&1; then
   if which easy_install >/dev/null 2>&1; then
-    sudo easy_install nose &&
     sudo easy_install -U pyepics
   else
     if ! which pip >/dev/null 2>&1; then
       if which yum >/dev/null 2>&1; then
         sudo yum install python-pip
       fi
-      if which apt >/dev/null 2>&1; then
+      if which apt-get >/dev/null 2>&1; then
         sudo apt-get install python-pip
       fi
     fi
     if which pip >/dev/null 2>&1; then
-      sudo pip install nose &&
       sudo pip install pyepics
+    else
+      false
+    fi
+  fi
+fi &&
+if ! which nosetests >/dev/null 2>&1; then
+  if which easy_install >/dev/null 2>&1; then
+    sudo easy_install nose
+  else
+    if ! which pip >/dev/null 2>&1; then
+      if which yum >/dev/null 2>&1; then
+        sudo yum install python-pip
+      fi
+      if which apt-get >/dev/null 2>&1; then
+        sudo apt-get install python-pip
+      fi
+    fi
+    if which pip >/dev/null 2>&1; then
+      sudo pip install nose
     else
       false
     fi
