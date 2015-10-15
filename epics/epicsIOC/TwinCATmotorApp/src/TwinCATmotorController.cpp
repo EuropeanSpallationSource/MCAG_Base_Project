@@ -35,6 +35,13 @@ TwinCATmotorController::TwinCATmotorController(const char *portName, const char 
                          0, 0)  // Default priority and stack size
 {
   asynStatus status;
+#ifdef CREATE_MOTOR_REC_RESOLUTION
+  /* Latest asynMotorController does this, but not the version in 6.81 (or 6.9x) */
+  createParam(motorRecResolutionString,        asynParamFloat64,      &motorRecResolution_);
+  createParam(motorRecDirectionString,           asynParamInt32,      &motorRecDirection_);
+  createParam(motorRecOffsetString,            asynParamFloat64,      &motorRecOffset_);
+#endif
+
   /* Connect to TwinCATmotor controller */
   status = pasynOctetSyncIO->connect(MotorPortName, 0, &pasynUserController_, NULL);
   if (status) {
