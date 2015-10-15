@@ -5,12 +5,16 @@ FILENAME...   TwinCATmotor.h
 #include "asynMotorController.h"
 #include "asynMotorAxis.h"
 
-// No controller-specific parameters yet
-#define NUM_VIRTUAL_MOTOR_PARAMS 0  
-
 #define AMPLIFIER_ON_FLAG_CREATE_AXIS  (1)
 #define AMPLIFIER_ON_FLAG_WHEN_HOMING  (1<<1)
 #define AMPLIFIER_ON_FLAG_USING_CNEN   (1<<2)
+
+#ifndef motorRecResolutionString
+#define CREATE_MOTOR_REC_RESOLUTION
+#define motorRecDirectionString         "MOTOR_REC_DIRECTION"
+#define motorRecOffsetString            "MOTOR_REC_OFFSET"
+#define motorRecResolutionString        "MOTOR_REC_RESOLUTION"
+#endif
 
 extern "C" {
   int TwinCATmotorCreateAxis(const char *TwinCATmotorName, int axisNo,
@@ -62,6 +66,7 @@ private:
   TwinCATmotorController *pC_;          /**< Pointer to the asynMotorController to which this axis belongs.
                                    *   Abbreviated because it is used very frequently */
   struct {
+    double mres;
     double motorHighLimit;
     double motorLowLimit;
     double oldPosition;
@@ -135,5 +140,15 @@ public:
   void handleStatusChange(asynStatus status);
   asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
 
+#ifdef CREATE_MOTOR_REC_RESOLUTION
+  #define FIRST_VIRTUAL_PARAM motorRecResolution_
+  int motorRecResolution_;
+  int motorRecDirection_;
+  int motorRecOffset_;
+  #define LAST_VIRTUAL_PARAM motorRecOffset_
+  #define NUM_VIRTUAL_MOTOR_PARAMS ((int) (&LAST_VIRTUAL_PARAM - &FIRST_VIRTUAL_PARAM + 1))
+#else
+  #define NUM_VIRTUAL_MOTOR_PARAMS ((int) (0))
+#endif
   friend class TwinCATmotorAxis;
 };
