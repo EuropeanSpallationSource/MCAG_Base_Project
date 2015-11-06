@@ -11,7 +11,7 @@ https://indico.fnal.gov/getFile.py/access?contribId=63&sessionId=12&resId=1&mate
 
 The TwinCAT 3 project is under TwinCAT/,
 
-the EPICS model 3 motor driver under  epics/epicsIOC/,
+the EPICS model 3 motor driver under  epics/m-epics-TwinCATmotor/,
 
 a motor simulator under epics/simulator/,
 

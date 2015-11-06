@@ -1,20 +1,3 @@
-#!../../bin/__EPICS_HOST_ARCH/TwinCATmotor
-
- # This file is not ment to be executed directly
- # It is preprocessed by doit.sh into e.g. st.cmd.linux-x86_64
-
-< envPaths.__EPICS_HOST_ARCH
-
-cd ${TOP}
-
-## Register all support components
-dbLoadDatabase "dbd/TwinCATmotor.dbd"
-TwinCATmotor_registerRecordDeviceDriver pdbbase
-
-## Load record instances
-#dbLoadRecords("db/xxx.db","user=torstenbogershausenHost")
-dbLoadRecords("db/TwinCATmotor.db", "P=IOC:,PORT=MCU1,M=m1,R=m1")
-
 ## Configure devices
 drvAsynIPPortConfigure("MC_CPU1","127.0.0.1:5024",0,0,0)
 asynOctetSetOutputEos("MC_CPU1", -1, ";\n")
@@ -58,8 +41,3 @@ TwinCATmotorCreateAxis("MCU1", "1", "2", "encoder=ADSPORT=501/.ADR.16#3040010,16
 ##TwinCATmotorCreateAxis("MCU1", "3")
 ##TwinCATmotorCreateAxis("MCU1", "4")
 
-cd ${TOP}/iocBoot/${IOC}
-iocInit
-
-## Start any sequence programs
-#seq sncxxx,"user=torstenbogershausenHost"

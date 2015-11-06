@@ -1,0 +1,4 @@
+#dbLoadRecords(TwinCATmotor.template, 'P=IOC:,M=m1,R=m1,DTYP="asynMotor",PORT=MCU1,ASYN_PORT=MCU1,ADDR=1,ASYN_ADDR=1,M=m1,DESC="m1",EGU=mm,DIR=Pos,BVEL=2,VELO=25,JVEL=10,VBAS=2,ACCL=1,BDST=0,DLY=.3,BACC=0.2,MRES=0.0046875,ERES=0.01754386,PREC=3,DLLM=-140,DHLM=13,INIT=""')
+
+dbLoadTemplate(TwinCATmotor.substitutions)
+
