@@ -1,6 +1,20 @@
 #!/bin/sh
 APPXX=TwinCATmotor
 export APPXX
+
+uname_s=$(uname -s 2>/dev/null || echo unknown)
+uname_m=$(uname -m 2>/dev/null || echo unknown)
+
+INSTALLED_EPICS=../.epics.$(hostname).$uname_s.$uname_m
+
+if test -r $INSTALLED_EPICS; then
+  echo INSTALLED_EPICS=$INSTALLED_EPICS
+. $INSTALLED_EPICS
+else
+  echo not found: INSTALLED_EPICS=$INSTALLED_EPICS
+fi
+
+
 if test -z "$EPICS_BASE";then
   echo >&2 "EPICS_BASE" is not set
   exit 1
@@ -34,8 +48,6 @@ if test -n "$1"; then
   echo MOTORIP=$MOTORIP
 fi
 export MOTORIP MOTORPORT
-uname_m=$(uname -m)
-uname_s=$(uname -s)
 setttings_file=./.set_${uname_s}_${uname_m}.txt
 oldsetttings_file=./.set_${uname_s}_${uname_m}.old.txt
 export setttings_file oldsetttings_file
@@ -78,6 +90,7 @@ elif test -d $EPICS_BASE/../modules/motor/dbd; then
   EPICS_MOTOR_DB=$EPICS_BASE/../modules/motor/dbd
 elif test -n "$EPICS_BASES_PATH"; then
    echo >&2 found: EPICS_BASES_PATH=$EPICS_BASES_PATH
+   echo >&2        EPICS_BASE=$EPICS_BASE
    mybasever=$(echo $EPICS_BASE | sed -e "s!^$EPICS_BASES_PATH/base-!!")
    echo >&2 mybasever=$mybasever
    EPICS_MOTOR_DB=$EPICS_MODULES_PATH/motor/6.8.1/$mybasever/dbd
