@@ -4,6 +4,7 @@
 #define MAX_AXES 8
 #define AXIS_CHECK_RETURN(_axis) {init_axis(_axis); if (((_axis) <= 0) || ((_axis) >=MAX_AXES)) return;}
 #define AXIS_CHECK_RETURN_ZERO(_axis) {init_axis(_axis); if (((_axis) <= 0) || ((_axis) >=MAX_AXES)) return 0;}
+#define AXIS_CHECK_RETURN_ERROR(_axis) {init_axis(_axis); if (((_axis) <= 0) || ((_axis) >=MAX_AXES)) return (-1);}
 
 int getAxisDone(int axis_no);
 int getAxisHome(int axis_no);
@@ -126,12 +127,13 @@ int moveVelocity(int axis_no,
  */
 int motorStop(int axis_no);
 
-
-
-//#%d ? F P Motor[%d].ServoCtrl",
-//#%d ? P #%d P Motor[%d].ServoCtrl"
-
-
-
+/*
+ *  amplifier power in percent 0..100
+ *  axis_no       1..max
+ *
+ *  return value: 0 == OK,
+ *                error codes and error handling needs to be defined
+ */
+int setAmplifierPercent(int axis_no, int percent);
 
 #endif /* MOTOR_H */
