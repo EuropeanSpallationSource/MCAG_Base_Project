@@ -1,5 +1,15 @@
 #!/bin/sh
 
+uname_s=$(uname -s 2>/dev/null || echo unknown)
+uname_m=$(uname -m 2>/dev/null || echo unknown)
+
+
+INSTALLED_EPICS=../.epics.$(hostname).$uname_s.$uname_m
+if test -r $INSTALLED_EPICS; then
+  echo INSTALLED_EPICS=$INSTALLED_EPICS
+. $INSTALLED_EPICS
+fi
+
 if test -z "$PYEPICS_LIBCA"; then
     MYLIB=$EPICS_BASE/lib/$EPICS_HOST_ARCH/libca.so
     if test -r "$MYLIB"; then

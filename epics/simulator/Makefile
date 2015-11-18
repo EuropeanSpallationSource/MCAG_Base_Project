@@ -69,6 +69,7 @@ endif
 MOTOROBJS=\
  $(BIN)/cmd_EAT.o \
  $(BIN)/cmd_IcePAP.o \
+ $(BIN)/cmd_TCPsim.o \
  $(BIN)/hw_motor.o
 
 TELOBJS=\
@@ -115,6 +116,8 @@ $(BIN)/cmd.o: \
  Makefile \
  sock-util.h \
  hw_motor.h \
+ cmd_IcePAP.h \
+ cmd_TCPsim.h \
  cmd.c
 	$(CC) -c $(CFLAGS) cmd.c -o $@
 
@@ -137,6 +140,13 @@ $(BIN)/cmd_IcePAP.o: \
  hw_motor.h \
  cmd_IcePAP.h
 	$(CC) -c $(CFLAGS) cmd_IcePAP.c -o $@
+
+$(BIN)/cmd_TCPsim.o: \
+ Makefile \
+ cmd_TCPsim.c \
+ hw_motor.h \
+ cmd_TCPsim.h
+	$(CC) -c $(CFLAGS) cmd_TCPsim.c -o $@
 
 $(BIN)/hw_motor.o: \
  Makefile \

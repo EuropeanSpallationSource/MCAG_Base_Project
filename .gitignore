@@ -1,6 +1,9 @@
 _Boot/
 _CompileInfo/
 _Libraries/
+epics/installed-epics/
+epics/.epics.*
+
 *.bak
 *.~u
 *.pyc

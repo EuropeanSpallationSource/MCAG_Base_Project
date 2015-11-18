@@ -10,12 +10,14 @@
 #define MOTOR_REV_ERES (-57)
 #define MOTOR_PARK_POS (-64)
 
+static void StopInternal(int axis_no);
 #define MOTOR_VEL_HOME_MAX 3.0
 
 typedef struct
 {
   struct timeval lastPollTime;
 
+  double amplifierPercent;
   double HomePos;     /* home switch */
   double highSoftLimitPos;
   double lowSoftLimitPos;
@@ -73,6 +75,7 @@ void hw_motor_init(int axis_no)
     memset(&motor_axis_last[axis_no], 0, sizeof(motor_axis_last[axis_no]));
     memset(&motor_axis_reported[axis_no], 0, sizeof(motor_axis_reported[axis_no]));
     motor_axis[axis_no].HomePos = MOTOR_POS_HOME;
+    motor_axis[axis_no].amplifierPercent = 100;
     motor_axis[axis_no].MaxHomeVelocityAbs = MOTOR_VEL_HOME_MAX;
     setMotorParkingPosition(axis_no, MOTOR_PARK_POS);
     motor_axis[axis_no].ReverseERES = MOTOR_REV_ERES;
@@ -293,11 +296,16 @@ void setHighHardLimitPos(int axis_no, double value)
   calcHardLimitsHomePos(axis_no);
 }
 
-double getMotorPos(int axis_no)
+static void simulateMotion(int axis_no)
 {
   struct timeval timeNow;
 
-  AXIS_CHECK_RETURN_ZERO(axis_no);
+  AXIS_CHECK_RETURN(axis_no);
+
+  if (motor_axis[axis_no].amplifierPercent < 100) {
+    StopInternal(axis_no);
+  }
+
   gettimeofday(&timeNow, NULL);
 
   if (motor_axis[axis_no].velo.JogVelocity) {
@@ -405,9 +413,12 @@ double getMotorPos(int axis_no)
               getAxisHome(axis_no),
               motor_axis[axis_no].MotorPosNow);
       memcpy(&motor_axis_last[axis_no], &motor_axis[axis_no], sizeof(motor_axis[axis_no]));
-    }
+  }
+}
 
-
+double getMotorPos(int axis_no)
+{
+  simulateMotion(axis_no);
   /* This simulation has EncoderPos */
   motor_axis[axis_no].EncoderPos = getEncoderPosFromMotorPos(axis_no, motor_axis[axis_no].MotorPosNow);
   return motor_axis[axis_no].MotorPosNow;
@@ -495,7 +506,8 @@ int moveHome(int axis_no,
   double velocity = max_velocity ? max_velocity : motor_axis[axis_no].MaxHomeVelocityAbs;
   velocity = fabs(velocity);
 
-  if (fabs(velocity) > motor_axis[axis_no].MaxHomeVelocityAbs) {
+  if (motor_axis[axis_no].MaxHomeVelocityAbs &&
+      (fabs(velocity) > motor_axis[axis_no].MaxHomeVelocityAbs)) {
     velocity = motor_axis[axis_no].MaxHomeVelocityAbs;
   }
   motor_axis[axis_no].HomeVelocityAbsWanted = velocity;
@@ -557,6 +569,19 @@ int motorStop(int axis_no)
   StopInternal(axis_no);
   return 0;
 }
+
+int setAmplifierPercent(int axis_no, int percent)
+{
+  fprintf(stdlog, "%s/%s:%d axis_no=%d percent=%d\n",
+          __FILE__, __FUNCTION__, __LINE__,
+          axis_no, percent);
+  AXIS_CHECK_RETURN_ERROR(axis_no);
+  if (percent < 0 || percent > 100) return -1;
+  motor_axis[axis_no].amplifierPercent = percent;
+  return 0;
+}
+
+
 
 int getNegLimitSwitch(int axis_no)
 {

@@ -9,8 +9,16 @@ to have different versions of different EPICS base/modules installed
 side-by-side.
 
 A shell script is included, which should find your EPICS installation
-automatically and run the appropriate make steps, including starting the IOC.
+automaticaly and run the appropriate make steps, including starting the IOC.
 
 You can try to use it like this:
 $ cd epics/m-epics-TwinCATmotor
 $ ./doit.sh
+
+If you want to test other versions of base/asyn/motor, they can be installed
+like this:
+$ cd epics
+$ ./install-epics.sh
+
+This script will generate a "hidden file" like
+.epics.somehost.example.com.Linux.x86_64, which is the used by doit.sh
