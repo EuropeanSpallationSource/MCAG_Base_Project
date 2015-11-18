@@ -41,10 +41,15 @@ if test -n "$1"; then
     MOTORPORT=$PORT
   fi
   echo HOST=$HOST MOTORPORT=$MOTORPORT
-  MOTORIP=$(PATH=.:$PATH netlookup.sh $HOST) || {
-  echo >&2 "Can not lookup $1"
-    exit 1
-  }
+  if which net >/dev/null; then
+      MOTORIP=$(net lookup $HOST) || {
+	  echo >&2 "Can not lookup $1"
+	  MOTORIP=$HOST
+      }
+  else
+      MOTORIP=$HOST
+  fi
+
   echo MOTORIP=$MOTORIP
 fi
 export MOTORIP MOTORPORT
