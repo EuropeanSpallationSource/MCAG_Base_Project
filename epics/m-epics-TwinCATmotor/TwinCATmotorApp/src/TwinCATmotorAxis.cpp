@@ -317,6 +317,8 @@ asynStatus TwinCATmotorAxis::getValueFromController(const char* var, double *val
 asynStatus TwinCATmotorAxis::sendVelocityAndAccelExecute(double maxVelocity, double acceleration)
 {
   asynStatus status;
+  status = resetAxis();
+  if (status) return status;
   /* We don't use minVelocity */
 
   if (!drvlocal.mres) {
@@ -462,12 +464,38 @@ asynStatus TwinCATmotorAxis::updateSoftLimitsIfDirty(int line)
   return asynSuccess;
 }
 
+asynStatus TwinCATmotorAxis::resetAxis(void)
+{
+  int bError = 0;
+  asynStatus status;
+  status = pC_->getIntegerParam(axisNo_, pC_->TwinCATmotorBError_, &bError);
+  if (bError) {
+    status = setValueOnAxis("bEnable", 0);
+    if (status) goto resetAxisReturn;
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+	      "bReset=1(%d)\n",  axisNo_);
+    status = setValueOnAxisVerify("bReset", "bReset", 1, 20);
+    if (status) goto resetAxisReturn;
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+	      "bReset=0(%d)\n",  axisNo_);
+    status = setValueOnAxisVerify("bReset", "bReset", 0, 20);
+    //if (status) goto resetAxisReturn;
+  }
+
+resetAxisReturn:
+  asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+            "resetAxis() status=%s (%d)\n",
+            pasynManager->strStatus(status), (int)status);
+  return status;
+}
 
 /** Enable the amplifier on an axis
   *
   */
 asynStatus TwinCATmotorAxis::enableAmplifier(int on)
 {
+  asynStatus status = resetAxis();
+  if (status) return status;
   return setValueOnAxisVerify("bEnable", "bEnabled", on ? 1 : 0, 100);
 }
 
@@ -590,6 +618,8 @@ asynStatus TwinCATmotorAxis::poll(bool *moving)
   setIntegerParam(pC_->motorStatusLowLimit_, !st_axis_status.bLimitBwd);
   setIntegerParam(pC_->motorStatusHighLimit_, !st_axis_status.bLimitFwd);
   setIntegerParam(pC_->motorStatusPowerOn_, st_axis_status.bEnabled);
+  setIntegerParam(pC_->TwinCATmotorBError_, st_axis_status.bError);
+  setIntegerParam(pC_->TwinCATmotorNErrorId_, st_axis_status.nErrorId);
 
   /* Use previous fActPosition and current fActPosition to calculate direction.*/
   if (st_axis_status.fActPosition > drvlocal.oldPosition) {
@@ -622,6 +652,14 @@ asynStatus TwinCATmotorAxis::poll(bool *moving)
               axisNo_, nowMoving,
 	      st_axis_status.bBusy, st_axis_status.bExecute, st_axis_status.fActPosition);
     drvlocal.oldNowMoving = nowMoving;
+  }
+  if (drvlocal.old_bError != st_axis_status.bError ||
+      drvlocal.old_nErrorId != st_axis_status.nErrorId) {
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "poll(%d) bError=%d st_axis_status.nErrorId=%d\n",
+              axisNo_, st_axis_status.bError, st_axis_status.nErrorId);
+    drvlocal.old_bError = st_axis_status.bError;
+    drvlocal.old_nErrorId = st_axis_status.nErrorId;
   }
 
   if (drvlocal.dirty.reportDisconnect) goto skip;

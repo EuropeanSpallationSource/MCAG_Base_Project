@@ -16,6 +16,9 @@ FILENAME...   TwinCATmotor.h
 #define motorRecResolutionString        "MOTOR_REC_RESOLUTION"
 #endif
 
+#define BERRORString                    "BERROR"
+#define NERRORIDString                  "NERRORID"
+
 extern "C" {
   int TwinCATmotorCreateAxis(const char *TwinCATmotorName, int axisNo,
 			     int axisFlags, const char *axisOptionsStr);
@@ -74,6 +77,8 @@ private:
     int axisFlags;
     int oldMotorStatusProblem;
     int oldNowMoving;
+    int old_bError;
+    int old_nErrorId;
     unsigned int waitNumPollsBeforeReady;
     /* Which values have changed in the EPICS IOC, but are not updated in the
        motion controller */
@@ -119,6 +124,7 @@ private:
 
   asynStatus setMotorLimitsOnAxis(void);
   asynStatus updateSoftLimitsIfDirty(int);
+  asynStatus resetAxis(void);
   asynStatus enableAmplifier(int);
   asynStatus sendVelocityAndAccelExecute(double maxVelocity, double acceleration);
   asynStatus setIntegerParam(int function, int value);
@@ -140,15 +146,22 @@ public:
   void handleStatusChange(asynStatus status);
   asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
 
+  /* First parameter */
+  int TwinCATmotorBError_;
 #ifdef CREATE_MOTOR_REC_RESOLUTION
-  #define FIRST_VIRTUAL_PARAM motorRecResolution_
   int motorRecResolution_;
   int motorRecDirection_;
   int motorRecOffset_;
-  #define LAST_VIRTUAL_PARAM motorRecOffset_
-  #define NUM_VIRTUAL_MOTOR_PARAMS ((int) (&LAST_VIRTUAL_PARAM - &FIRST_VIRTUAL_PARAM + 1))
-#else
-  #define NUM_VIRTUAL_MOTOR_PARAMS ((int) (0))
 #endif
+
+  /* Add parameters here */
+
+  int TwinCATmotorNErrorId_;
+  /* Last parameter */
+
+  #define FIRST_VIRTUAL_PARAM TwinCATmotorBError_
+  #define LAST_VIRTUAL_PARAM TwinCATmotorNErrorId_
+  #define NUM_VIRTUAL_MOTOR_PARAMS ((int) (&LAST_VIRTUAL_PARAM - &FIRST_VIRTUAL_PARAM + 1))
+
   friend class TwinCATmotorAxis;
 };

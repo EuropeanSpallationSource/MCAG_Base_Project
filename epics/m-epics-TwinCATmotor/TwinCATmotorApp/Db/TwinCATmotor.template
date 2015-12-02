@@ -66,6 +66,20 @@ grecord(ai,"$(P)$(R)READBACK") {
     field(INP,"@asyn($(PORT),$(ADDR))MOTOR_POSITION")
 }
 
+record(longin, "$(P)$(R)BERROR")
+{
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),$(ADDR))BERROR")
+    field(SCAN, "I/O Intr")
+}
+
+record(longin, "$(P)$(R)NERRORID")
+{
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),$(ADDR))NERRORID")
+    field(SCAN, "I/O Intr")
+}
+
 record (asyn, "$(P)$(PORT):asyn")
 {
 }
