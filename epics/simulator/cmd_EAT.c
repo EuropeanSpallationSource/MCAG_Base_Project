@@ -16,9 +16,11 @@ typedef struct
   unsigned nCmdData;
   int    bEnabled;
   int    bExecute;
+  int    bReset;
   double position;
   double velocity;
   double acceleration;
+  unsigned nErrorId;
 } cmd_Motor_cmd_type;
 
 static cmd_Motor_cmd_type cmd_Motor_cmd[MAX_AXES];
@@ -310,6 +312,11 @@ static void motorHandleOneArg(const char *myarg_1)
     cmd_buf_printf("%d", getAxisHomed(motor_axis_no) ? 1 : 0);
     return;
   }
+  /* bReset? */
+  if (!strcmp(myarg_1, "bReset?")) {
+    cmd_buf_printf("%d",cmd_Motor_cmd[motor_axis_no].bReset);
+    return;
+  }
   /* fActPosition? */
   if (0 == strcmp(myarg_1, "fActPosition?")) {
     cmd_buf_printf("%f", getMotorPos(motor_axis_no));
@@ -350,7 +357,7 @@ static void motorHandleOneArg(const char *myarg_1)
     int bHomeSensor = getAxisHome(motor_axis_no);
     int bEnabled = cmd_Motor_cmd[motor_axis_no].bEnabled;
     int bError = get_bError(motor_axis_no);
-    unsigned nErrorId = 0;
+    int nErrorId = get_nErrorId(motor_axis_no);
     double fActVelocity = getMotorVelocity(motor_axis_no);
     double fActPostion = getMotorPos(motor_axis_no);
     double fActDiff = 0;
@@ -427,6 +434,12 @@ static void motorHandleOneArg(const char *myarg_1)
   nvals = sscanf(myarg_1, "bEnable=%d", &iValue);
   if (nvals == 1) {
     cmd_Motor_cmd[motor_axis_no].bEnabled = iValue;
+    if (!iValue && isMotorMoving(motor_axis_no)) {
+      /* Amplifier off, while moving */
+      motorStop(motor_axis_no);
+      set_nErrorId(motor_axis_no, 16992);
+      set_bError(motor_axis_no, 1);
+    }
     cmd_buf_printf("OK");
     return;
   }
@@ -507,6 +520,18 @@ static void motorHandleOneArg(const char *myarg_1)
     RETURN_OR_DIE("%s/%s:%d line=%s invalid_iValue=%u '.'",
                   __FILE__, __FUNCTION__, __LINE__,
                   myarg,  iValue);
+  }
+  /* bReset= */
+  nvals = sscanf(myarg_1, "bReset=%d", &iValue);
+  if (nvals == 1) {
+    cmd_Motor_cmd[motor_axis_no].bReset = iValue;
+    if (iValue) {
+      motorStop(motor_axis_no);
+      set_nErrorId(motor_axis_no, 0);
+      set_bError(motor_axis_no, 0);
+    }
+    cmd_buf_printf("OK");
+    return;
   }
   /* if we come here, we do not understand the command */
   RETURN_OR_DIE("%s/%s:%d line=%s",

@@ -38,7 +38,12 @@ char getpLimits(int axis_no);
 void setpLimits(int axis_no, char value);
 int getNegLimitSwitch(int axis_no);
 int getPosLimitSwitch(int axis_no);
-int get_bError(int motor_axis_no);
+int get_bError(int axis_no);
+int set_bError(int axis_no, int value);
+
+int get_nErrorId(int axis_no);
+int set_nErrorId(int axis_no, int value);
+
 
 /*
  * Movements

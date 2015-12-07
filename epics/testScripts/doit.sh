@@ -68,8 +68,11 @@ else
     numruns=1
 fi
 
+TESTEDMOTORAXIS=IOC:m1
+export TESTEDMOTORAXIS
 while test $numruns -gt 0; do
-  nosetests "$@" t1.py || exit 1
+  nosetests "$@" HOMF-JOGF-DHLM-JOGR-DLLM.py || exit 1
+  nosetests "$@" JOG-_CNEN-Error.py || exit 1
   numruns=$(($numruns - 1))
   echo Runs left=$numruns
 done
