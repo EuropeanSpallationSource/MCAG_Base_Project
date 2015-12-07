@@ -42,6 +42,8 @@ typedef struct
   double ParkingPos;
   double ReverseERES;
   int homed;
+  int bError;
+  int nErrorId;
   char pLimits;
 } motor_axis_type;
 
@@ -621,17 +623,29 @@ int getPosLimitSwitch(int axis_no)
   return motor_axis[axis_no].hitPosLimitSwitch;
 }
 
-int get_bError(motor_axis_no)
+int get_bError(int axis_no)
 {
-#if 0
-  double HomeVelocityAbsWanted = motor_axis[motor_axis_no].HomeVelocityAbsWanted;
-  if (HomeVelocityAbsWanted > MaxHomeVelocityAbs {
-    fprintf(stdlog, "%s/%s:%d axis_no=%d HomeVelocityAbsWanted=%f\n",
-            __FILE__, __FUNCTION__, __LINE__,
-            motor_axis_no,
-           HomeVelocityAbsWanted);
-    return 1;
-  }
-#endif
+  AXIS_CHECK_RETURN_ZERO(axis_no);
+  return motor_axis[axis_no].bError;
+}
+
+int set_bError(int axis_no, int value)
+{
+  AXIS_CHECK_RETURN_ZERO(axis_no);
+  motor_axis[axis_no].bError = value;
   return 0;
 }
+
+int get_nErrorId(int axis_no)
+{
+  AXIS_CHECK_RETURN_ZERO(axis_no);
+  return motor_axis[axis_no].nErrorId;
+}
+
+int set_nErrorId(int axis_no, int value)
+{
+  AXIS_CHECK_RETURN_ZERO(axis_no);
+  motor_axis[axis_no].nErrorId = value;
+  return 0;
+}
+

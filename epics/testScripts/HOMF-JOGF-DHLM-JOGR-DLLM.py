@@ -17,17 +17,7 @@ import math
 import time
 ###
 
-device = "IOC"
-motor  = "m1"
 polltime = 0.2
-
-# Default device and motor name
-# wait deadband when the script moves the motor to a new location
-#sleep_deadband = int(args.deadband)
-#if args.prompt == 'yes':
-#    prompt = 'y'
-#else:
-#    prompt = 'n'
 
 def waitForStartAndDone(motor, tc_no, wait_for_done):
     wait_for_start = 2
@@ -92,7 +82,7 @@ class Test(unittest.TestCase):
     MSTA_BIT_MINUS_LS = 1 << (14 -1)
     MSTA_BIT_PLUS_LS  = 1 << (3 -1)
 
-    m1 = epics.Motor(device + ':' + motor)
+    m1 = epics.Motor(os.getenv("TESTEDMOTORAXIS"))
 
     middle_dialPosition  = round((m1.DLLM + m1.DHLM) / 2)
     range_postion    = m1.DHLM - m1.DLLM
@@ -129,6 +119,9 @@ class Test(unittest.TestCase):
         time_to_wait = 30
         if self.range_postion > 0 and self.homing_velocity > 0:
             time_to_wait = 1 + self.range_postion / self.homing_velocity + 2 * self.acceleration
+
+        # Homing velocity not implemented, wait longer
+        time_to_wait = 180
         done = waitForStartAndDone(self.m1, tc_no, time_to_wait)
 
         msta = int(self.m1.get('MSTA'))
@@ -195,7 +188,7 @@ class Test(unittest.TestCase):
         dialPosition = self.m1.get_position(readback=True,dial=True)
         print '%s postion=%f middle_dialPosition=%f' % (
             tc_no, dialPosition, self.middle_dialPosition)
-        assert calcAlmostEqual(motor, tc_no, destination, dialPosition, 2)
+        assert calcAlmostEqual(self.m1, tc_no, destination, dialPosition, 2)
         
     # Low soft limit
     def test_TC_030(self):
@@ -253,4 +246,4 @@ class Test(unittest.TestCase):
         dialPosition = self.m1.get_position(readback=True,dial=True)
         print '%s postion=%f middle_dialPosition=%f' % (
             tc_no, dialPosition, self.middle_dialPosition)
-        assert calcAlmostEqual(motor, tc_no, self.middle_dialPosition, dialPosition, 2)
+        assert calcAlmostEqual(self.m1, tc_no, self.middle_dialPosition, dialPosition, 2)
