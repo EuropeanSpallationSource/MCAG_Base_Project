@@ -14,6 +14,7 @@ static void init_axis(int);
 void hw_motor_init(int);
 /* Where does the motor wake up after power-on */
 void setMotorParkingPosition(int axis_no, double value);
+void setHomePos(int axis_no, double value);
 void setMaxHomeVelocityAbs(int axis_no, double value);
 void setMotorReverseERES(int axis_no, double value);
 
@@ -34,8 +35,6 @@ void   setHighHardLimitPos(int axis_no, double value);
 double getMotorPos(int axis_no);
 double getEncoderPos(int axis_no);
 
-char getpLimits(int axis_no);
-void setpLimits(int axis_no, char value);
 int getNegLimitSwitch(int axis_no);
 int getPosLimitSwitch(int axis_no);
 int get_bError(int axis_no);
@@ -140,5 +139,14 @@ int motorStop(int axis_no);
  *                error codes and error handling needs to be defined
  */
 int setAmplifierPercent(int axis_no, int percent);
+
+/*
+ *  amplifier     on
+ *  axis_no       1..max
+ *
+ *  return value: 1 == ON, 100%
+ *                0 otherwise
+ */
+int getAmplifierOn(int axis_no);
 
 #endif /* MOTOR_H */
