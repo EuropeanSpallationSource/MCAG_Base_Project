@@ -298,28 +298,28 @@ IF fbPower.Error AND fbPower.Active THEN
 ELSIF fbHalt.Error AND fbHalt.Active THEN
 	bError:=fbHalt.Execute;
 	nErrorId:=fbHalt.ErrorID;
-ELSIF fbJog.Error AND fbJog.Active THEN
+ELSIF fbJog.Error AND nCommand=0 (*fbJog.Active*) THEN
 	bError:=fbJog.JogForward OR fbJog.JogBackwards;
 	nErrorId:=fbJog.ErrorID;
-ELSIF fbMoveVelocity.Error AND fbMoveVelocity.Active THEN
+ELSIF fbMoveVelocity.Error AND nCommand=1(*fbMoveVelocity.Active*) THEN
 	bError:=fbMoveVelocity.Execute;
 	nErrorId:=fbMoveVelocity.ErrorID;
-ELSIF fbMoveRelative.Error AND fbMoveRelative.Active THEN
+ELSIF fbMoveRelative.Error AND nCommand=2 (*fbMoveRelative.Active*) THEN
 	bError:=fbMoveRelative.Execute;
 	nErrorId:=fbMoveRelative.ErrorID;
-ELSIF fbMoveAbsolute.Error AND fbMoveAbsolute.Active THEN
+ELSIF fbMoveAbsolute.Error AND nCommand=3 (*fbMoveAbsolute.Active*) THEN
 	bError:=fbMoveAbsolute.Execute;
 	nErrorId:=fbMoveAbsolute.ErrorID;
-ELSIF fbMoveModulo.Error AND fbMoveModulo.Active THEN
+ELSIF fbMoveModulo.Error AND nCOmmand=4 (*fbMoveModulo.Active*) THEN
 	bError:=fbMoveModulo.Execute;
 	nErrorId:=fbMoveModulo.ErrorID;
-ELSIF fbHome.Error AND fbHome.Active THEN
+ELSIF fbHome.Error AND nCommand=10 (*fbHome.Active*) THEN
 	bError:=fbHome.Execute;
 	nErrorId:=fbHome.ErrorID;
-ELSIF fbGearInDyn.Error AND fbGearInDyn.Active THEN
+ELSIF fbGearInDyn.Error AND nCommand=30 (*fbGearInDyn.Active*) THEN
 	bError:=fbGearInDyn.Enable;
 	nErrorId:=fbGearInDyn.ErrorID;
-ELSIF fbGearOut.Error AND Axis.Status.Coupled THEN
+ELSIF fbGearOut.Error AND nCommand=30 AND Axis.Status.Coupled THEN
 	bError:=fbGearOut.Execute;
 	nErrorId:=fbGearOut.ErrorID;
 ELSIF Axis.Status.Error  THEN
