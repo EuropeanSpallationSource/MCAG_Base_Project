@@ -440,11 +440,14 @@ asynStatus TwinCATmotorAxis::setMotorLowLimitOnAxis(void)
 /** Set the low soft-limit on an axis
   *
   */
-asynStatus TwinCATmotorAxis::setMotorLimitsOnAxis(void)
+asynStatus TwinCATmotorAxis::setMotorLimitsOnAxisIfDefined(void)
 {
   asynStatus status = asynError;
   asynPrint(pC_->pasynUserController_, ASYN_TRACEIO_DRIVER, "\n");
-  if (setMotorHighLimitOnAxis() == asynSuccess &&
+  if (drvlocal.defined.motorLowLimit &&
+      drvlocal.defined.motorHighLimit &&
+      drvlocal.mres &&
+      setMotorHighLimitOnAxis() == asynSuccess &&
       setMotorLowLimitOnAxis() == asynSuccess) {
     status = asynSuccess;
   }
@@ -460,7 +463,7 @@ asynStatus TwinCATmotorAxis::updateSoftLimitsIfDirty(int line)
 {
   asynPrint(pC_->pasynUserController_, ASYN_TRACEIO_DRIVER,
             "called from %d\n",line);
-  if (drvlocal.dirty.motorLimits) return setMotorLimitsOnAxis();
+  if (drvlocal.dirty.motorLimits) return setMotorLimitsOnAxisIfDefined();
   return asynSuccess;
 }
 
@@ -721,19 +724,20 @@ asynStatus TwinCATmotorAxis::setDoubleParam(int function, double value)
     drvlocal.motorHighLimit = value;
     drvlocal.defined.motorHighLimit = 1;
     drvlocal.dirty.motorLimits = 1;
-    if (drvlocal.defined.motorLowLimit) setMotorLimitsOnAxis();
+    setMotorLimitsOnAxisIfDefined();
   } else if (function == pC_->motorLowLimit_) {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
               "setDoubleParam(motorLowLimit_)=%f\n", value);
     drvlocal.motorLowLimit = value;
     drvlocal.defined.motorLowLimit = 1;
     drvlocal.dirty.motorLimits = 1;
-    if (drvlocal.defined.motorHighLimit) setMotorLimitsOnAxis();
+    setMotorLimitsOnAxisIfDefined();
 #ifdef motorRecResolutionString
   } else if (function == pC_->motorRecResolution_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
                   "setDoubleParam(motorRecResolution_=%f\n", value);
       drvlocal.mres = value;
+      setMotorLimitsOnAxisIfDefined();
 #endif
   }
 
