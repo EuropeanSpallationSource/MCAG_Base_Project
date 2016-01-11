@@ -122,7 +122,7 @@ private:
   asynStatus setMotorHighLimitOnAxis(void);
   asynStatus setMotorLowLimitOnAxis(void);
 
-  asynStatus setMotorLimitsOnAxis(void);
+  asynStatus setMotorLimitsOnAxisIfDefined(void);
   asynStatus updateSoftLimitsIfDirty(int);
   asynStatus resetAxis(void);
   asynStatus enableAmplifier(int);
