@@ -61,18 +61,39 @@ fi || {
   exit 1
 }
 
-if test -n "$1"; then
+if test -n "$1" && test -f "$1"; then
+    file=$1
+    shift 1
+else
+    numruns=1
+fi
+
+if test -n "$1" && test "$1" -ne 0; then
     numruns=$1
     shift 1
 else
     numruns=1
 fi
 
+run_nosetests ()
+{
+  echo nosetests "$@"
+  nosetests "$@" || exit 1
+}
+
 TESTEDMOTORAXIS=IOC:m1
 export TESTEDMOTORAXIS
 while test $numruns -gt 0; do
-  nosetests "$@" HOMF-JOGF-DHLM-JOGR-DLLM.py || exit 1
-  nosetests "$@" JOG-_CNEN-Error.py || exit 1
+  if test -n "$file"; then
+    run_nosetests "$@" $file || exit 1
+  else
+    py=$(echo *.py | sort)
+    echo py=$py
+    for p in $py
+    do
+      run_nosetests "$@" $p || exit 1
+    done
+  fi
   numruns=$(($numruns - 1))
   echo Runs left=$numruns
 done

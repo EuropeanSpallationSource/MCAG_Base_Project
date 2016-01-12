@@ -41,7 +41,7 @@ def waitForStartAndDone(motor, tc_no, wait_for_done):
         time.sleep(polltime)
         wait_for_done -= polltime
     return False
-    
+
 def jogDirection(motor, tc_no, direction, jogging_velocity, acceleration):
     if direction > 0:
         destination = motor.DHLM
@@ -49,7 +49,7 @@ def jogDirection(motor, tc_no, direction, jogging_velocity, acceleration):
     else:
         destination = motor.DLLM
         motor.put('JOGR', 1)
-    
+
     time_to_wait = 30
     if jogging_velocity > 0:
         if motor.DHLM != motor.DLLM:
@@ -93,7 +93,7 @@ class Test(unittest.TestCase):
 
     saved_high_limit = m1.get('DHLM')
     saved_low_limit = m1.get('DLLM')
-    
+
     print "m1.DLLM=%d m1.DHLM=%d middle_dialPosition=%d" % (m1.DLLM, m1.DHLM, middle_dialPosition)
 
     def setUp(self):
@@ -110,7 +110,7 @@ class Test(unittest.TestCase):
             self.m1.put('DLLM', self.saved_low_limit)
 
 
-    
+
     # Home the motor
     def test_TC_01(self):
         tc_no = "TC-01"
@@ -163,7 +163,7 @@ class Test(unittest.TestCase):
         else:
             self.m1.put('DHLM', 0.0)
             self.m1.put('DLLM', 0.0)
-        
+
         jogDirection(self.m1, tc_no, 1, self.jogging_velocity, self.acceleration)
         # Get values, check them later
         lvio = int(self.m1.get('LVIO'))
@@ -176,7 +176,7 @@ class Test(unittest.TestCase):
         self.assertEqual(0, lvio, 'LVIO == 0')
         self.assertNotEqual(0, msta & self.MSTA_BIT_PLUS_LS, 'hard limit switch')
 
-        
+
     # 10%  dialPosition
     def test_TC_023(self):
         tc_no = "TC-023-10-percent-dialPosition"
@@ -189,7 +189,7 @@ class Test(unittest.TestCase):
         print '%s postion=%f middle_dialPosition=%f' % (
             tc_no, dialPosition, self.middle_dialPosition)
         assert calcAlmostEqual(self.m1, tc_no, destination, dialPosition, 2)
-        
+
     # Low soft limit
     def test_TC_030(self):
         tc_no = "TC-030-low-soft-limit"
@@ -223,7 +223,7 @@ class Test(unittest.TestCase):
         else:
             self.m1.put('DHLM', 0.0)
             self.m1.put('DLLM', 0.0)
-        
+
         jogDirection(self.m1, tc_no, 0, self.jogging_velocity, self.acceleration)
         lvio = int(self.m1.get('LVIO'))
         msta = int(self.m1.get('MSTA'))
