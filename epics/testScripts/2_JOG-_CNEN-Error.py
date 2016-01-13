@@ -94,11 +94,12 @@ class Test(unittest.TestCase):
     # Jog, wait for start, power off, check error, reset error
     def test_TC_202(self):
         tc_no = "TC-202-JOG-_CNEN"
-        self.motm1.put('JOGF', 1)
-        ret = waitForStart(self.motm1, tc_no, 2.0)
-        self.assertEqual(True, ret, 'waitForStart return True')
-
         self.motm1.put('CNEN', 0)
+
+        self.motm1.put('JOGF', 1)
+
+        ret = waitForStart(self.motm1, tc_no, 2.0)
+        # dummy wait
 
         ret = waitForStop(self.motm1, tc_no, 2.0)
         self.assertEqual(True, ret, 'waitForStop return True')
@@ -116,7 +117,7 @@ class Test(unittest.TestCase):
         self.assertNotEqual(0, bError,   'bError')
         self.assertNotEqual(0, nErrorId, 'nErrorId')
         
-        self.motm1.put('JOGF', 0)
+        self.motm1.put('STOP', 1)
         self.motm1.put('CNEN', 1)
 
         msta = int(self.pv_MSTA.get(use_monitor=False))

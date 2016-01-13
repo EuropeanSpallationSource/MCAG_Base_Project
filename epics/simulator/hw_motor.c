@@ -10,7 +10,6 @@
 #define MOTOR_REV_ERES (-57)
 #define MOTOR_PARK_POS (-64)
 
-static void StopInternal(int axis_no);
 #define MOTOR_VEL_HOME_MAX 3.0
 
 typedef struct
@@ -269,6 +268,37 @@ void setHighHardLimitPos(int axis_no, double value)
   motor_axis[axis_no].definedHighHardLimitPos = 1;
 }
 
+static int soft_limits_clip(int axis_no, double velocity)
+{
+  int clipped = 0;
+  /* Soft limits defined: Clip the value  */
+  if (motor_axis[axis_no].enabledHighSoftLimitPos &&
+      velocity > 0 &&
+      motor_axis[axis_no].MotorPosNow > motor_axis[axis_no].highSoftLimitPos) {
+    fprintf(stdlog,
+            "%s/%s:%d axis_no=%d CLIP soft low MotorPosNow=%f highSoftLimitPos=%f\n",
+            __FILE__, __FUNCTION__, __LINE__,
+            axis_no,
+            motor_axis[axis_no].MotorPosNow,
+            motor_axis[axis_no].highSoftLimitPos);
+    motor_axis[axis_no].MotorPosNow = motor_axis[axis_no].highSoftLimitPos;
+    clipped = 1;
+  }
+  if (motor_axis[axis_no].enabledLowSoftLimitPos &&
+      velocity < 0 &&
+      motor_axis[axis_no].MotorPosNow < motor_axis[axis_no].lowSoftLimitPos) {
+    fprintf(stdlog,
+            "%s/%s:%d axis_no=%d CLIP soft high MotorPosNow=%f lowSoftLimitPos=%f\n",
+            __FILE__, __FUNCTION__, __LINE__,
+            axis_no,
+            motor_axis[axis_no].MotorPosNow,
+            motor_axis[axis_no].lowSoftLimitPos);
+    motor_axis[axis_no].MotorPosNow = motor_axis[axis_no].lowSoftLimitPos;
+    clipped = 1;
+  }
+  return clipped;
+} /* Soft limits */
+
 static void simulateMotion(int axis_no)
 {
   struct timeval timeNow;
@@ -278,18 +308,25 @@ static void simulateMotion(int axis_no)
   AXIS_CHECK_RETURN(axis_no);
 
   if (motor_axis[axis_no].amplifierPercent < 100) {
-    StopInternal(axis_no);
+    if (velocity) {
+      /* Amplifier off, while moving */
+      set_nErrorId(axis_no, 16992);
+      set_bError(axis_no, 1);
+      StopInternal(axis_no);
+    }
   }
 
   gettimeofday(&timeNow, NULL);
 
-  if (motor_axis[axis_no].velo.JogVelocity) {
+  if (motor_axis[axis_no].velo.JogVelocity &&
+      !soft_limits_clip(axis_no, velocity)) {
     /* Simulate jogging  */
     motor_axis[axis_no].MotorPosNow += motor_axis[axis_no].velo.JogVelocity *
       (timeNow.tv_sec - motor_axis[axis_no].lastPollTime.tv_sec);
   }
 
-  if (motor_axis[axis_no].velo.PosVelocity) {
+  if (motor_axis[axis_no].velo.PosVelocity &&
+      !soft_limits_clip(axis_no, velocity)) {
     /* Simulate a move to postion */
     motor_axis[axis_no].MotorPosNow += motor_axis[axis_no].velo.PosVelocity *
       (timeNow.tv_sec - motor_axis[axis_no].lastPollTime.tv_sec);
@@ -323,33 +360,7 @@ static void simulateMotion(int axis_no)
   }
 
   motor_axis[axis_no].lastPollTime = timeNow;
-  if (motor_axis[axis_no].highSoftLimitPos > motor_axis[axis_no].lowSoftLimitPos) {
-    /* Soft limits defined: Clip the value  */
-    if (motor_axis[axis_no].enabledHighSoftLimitPos &&
-        velocity > 0 &&
-        motor_axis[axis_no].MotorPosNow > motor_axis[axis_no].highSoftLimitPos) {
-      fprintf(stdlog,
-              "%s/%s:%d axis_no=%d CLIP soft low MotorPosNow=%f highSoftLimitPos=%f\n",
-              __FILE__, __FUNCTION__, __LINE__,
-              axis_no,
-              motor_axis[axis_no].MotorPosNow,
-              motor_axis[axis_no].highSoftLimitPos);
-      motor_axis[axis_no].MotorPosNow = motor_axis[axis_no].highSoftLimitPos;
-      clipped = 1;
-    }
-    if (motor_axis[axis_no].enabledLowSoftLimitPos &&
-        velocity < 0 &&
-        motor_axis[axis_no].MotorPosNow < motor_axis[axis_no].lowSoftLimitPos) {
-      fprintf(stdlog,
-              "%s/%s:%d axis_no=%d CLIP soft high MotorPosNow=%f lowSoftLimitPos=%f\n",
-              __FILE__, __FUNCTION__, __LINE__,
-              axis_no,
-              motor_axis[axis_no].MotorPosNow,
-              motor_axis[axis_no].lowSoftLimitPos);
-      motor_axis[axis_no].MotorPosNow = motor_axis[axis_no].lowSoftLimitPos;
-      clipped = 1;
-    }
-  } /* Soft limits */
+  clipped = soft_limits_clip(axis_no, velocity);
   if (motor_axis[axis_no].highHardLimitPos > motor_axis[axis_no].lowHardLimitPos) {
     /* Hard limits defined: Clip the value  */
     if (motor_axis[axis_no].definedHighHardLimitPos &&
@@ -383,9 +394,10 @@ static void simulateMotion(int axis_no)
       motor_axis_last[axis_no].MotorPosWanted  != motor_axis[axis_no].MotorPosWanted ||
       clipped) {
     fprintf(stdlog,
-            "%s/%s:%d axis_no=%d MotorPosWanted=%f JogVelocity=%g PosVelocity=%g HomeVelocity=%g home=%d MotorPosNow=%f\n",
+            "%s/%s:%d axis_no=%d velocity=%g MotorPosWanted=%f JogVelocity=%g PosVelocity=%g HomeVelocity=%g home=%d MotorPosNow=%f\n",
             __FILE__, __FUNCTION__, __LINE__,
             axis_no,
+            velocity,
             motor_axis[axis_no].MotorPosWanted,
             motor_axis[axis_no].velo.JogVelocity,
             motor_axis[axis_no].velo.PosVelocity,
@@ -424,8 +436,11 @@ double getEncoderPos(int axis_no)
 /* Stop the ongoing motion (like JOG),
    to be able to start a new one (like HOME)
 */
-static void StopInternal(int axis_no)
+void StopInternal_fl(int axis_no, const char *file, int line_no)
 {
+  fprintf(stdlog, "%s/%s:%d axis_no=%d file=%s line_no=%d\n",
+          __FILE__, __FUNCTION__, __LINE__,
+          axis_no, file, line_no);
   AXIS_CHECK_RETURN(axis_no);
   memset(&motor_axis[axis_no].velo, 0,
          sizeof(motor_axis[axis_no].velo));
@@ -532,14 +547,6 @@ int moveVelocity(int axis_no,
 };
 
 
-int motorStop(int axis_no)
-{
-  fprintf(stdlog, "%s/%s:%d axis_no=%d\n",
-          __FILE__, __FUNCTION__, __LINE__,
-          axis_no);
-  StopInternal(axis_no);
-  return 0;
-}
 
 int setAmplifierPercent(int axis_no, int percent)
 {

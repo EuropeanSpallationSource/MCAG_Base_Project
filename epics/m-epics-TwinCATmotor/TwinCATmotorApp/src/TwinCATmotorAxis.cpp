@@ -497,7 +497,8 @@ resetAxisReturn:
   */
 asynStatus TwinCATmotorAxis::enableAmplifier(int on)
 {
-  asynStatus status = resetAxis();
+  asynStatus status = asynSuccess;
+  if (on) status = resetAxis();
   if (status) return status;
   return setValueOnAxisVerify("bEnable", "bEnabled", on ? 1 : 0, 100);
 }
