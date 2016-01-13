@@ -55,6 +55,7 @@ class Test(unittest.TestCase):
 
     MSTA_BIT_MOVING   = 1 << (11 -1)
     MSTA_BIT_PROBLEM  = 1 << (10 -1)
+    MSTA_BIT_FOLLOW_ERR  = 1 << (7 -1)
 
     MSTA_BIT_PLUS_LS  = 1 << (3 -1)
 
@@ -104,7 +105,8 @@ class Test(unittest.TestCase):
        
         msta = int(self.motm1.get('MSTA'))
         print '%s Error msta=%x' % (tc_no, msta)
-        self.assertNotEqual(0, msta & self.MSTA_BIT_PROBLEM, 'Error MSTA.Problem)')
+        self.assertEqual(0, msta & self.MSTA_BIT_PROBLEM, 'Error MSTA.Problem)')
+        self.assertNotEqual(0, msta & self.MSTA_BIT_FOLLOW_ERR, 'Error MSTA.Following Error)')
         self.assertEqual(0, msta & self.MSTA_BIT_MOVING,     'Error MSTA.Moving)')
 
         bError   = self.pv_bError.get(use_monitor=False)
