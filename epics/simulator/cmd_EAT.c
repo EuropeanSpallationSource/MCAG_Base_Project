@@ -432,12 +432,6 @@ static void motorHandleOneArg(const char *myarg_1)
   /* bEnable= */
   nvals = sscanf(myarg_1, "bEnable=%d", &iValue);
   if (nvals == 1) {
-    if (!iValue && isMotorMoving(motor_axis_no)) {
-      /* Amplifier off, while moving */
-      motorStop(motor_axis_no);
-      set_nErrorId(motor_axis_no, 16992);
-      set_bError(motor_axis_no, 1);
-    }
     setAmplifierPercent(motor_axis_no, iValue ? 100 : 0);
     cmd_buf_printf("OK");
     return;

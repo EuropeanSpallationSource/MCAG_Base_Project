@@ -497,7 +497,8 @@ resetAxisReturn:
   */
 asynStatus TwinCATmotorAxis::enableAmplifier(int on)
 {
-  asynStatus status = resetAxis();
+  asynStatus status = asynSuccess;
+  if (on) status = resetAxis();
   if (status) return status;
   return setValueOnAxisVerify("bEnable", "bEnabled", on ? 1 : 0, 100);
 }
@@ -616,7 +617,14 @@ asynStatus TwinCATmotorAxis::poll(bool *moving)
     goto skip;
   }
   setIntegerParam(pC_->motorStatusHomed_, st_axis_status.bHomed);
-  setIntegerParam(pC_->motorStatusProblem_, st_axis_status.bError);
+  /* Setting the problem bit means, that MR will send us a stop command.
+     stop will set bExecute to 0, and the error disappears.
+     We don't want that, the user should set stop
+     setIntegerParam(pC_->motorStatusProblem_, st_axis_status.bError);
+  */
+  setIntegerParam(pC_->motorStatusFollowingError_, st_axis_status.bError);
+
+  setIntegerParam(pC_->motorStatusCommsError_, 0);
   setIntegerParam(pC_->motorStatusAtHome_, st_axis_status.bHomeSensor);
   setIntegerParam(pC_->motorStatusLowLimit_, !st_axis_status.bLimitBwd);
   setIntegerParam(pC_->motorStatusHighLimit_, !st_axis_status.bLimitFwd);
@@ -684,7 +692,7 @@ skip:
   }
   drvlocal.dirty.reportDisconnect = 0;
   drvlocal.oldMotorStatusProblem = 1;
-  setIntegerParam(pC_->motorStatusProblem_, 1);
+  setIntegerParam(pC_->motorStatusCommsError_, 1);
   callParamCallbacks();
   return asynError;
 }

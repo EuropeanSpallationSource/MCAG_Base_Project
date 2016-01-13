@@ -55,6 +55,7 @@ class Test(unittest.TestCase):
 
     MSTA_BIT_MOVING   = 1 << (11 -1)
     MSTA_BIT_PROBLEM  = 1 << (10 -1)
+    MSTA_BIT_FOLLOW_ERR  = 1 << (7 -1)
 
     MSTA_BIT_PLUS_LS  = 1 << (3 -1)
 
@@ -93,18 +94,20 @@ class Test(unittest.TestCase):
     # Jog, wait for start, power off, check error, reset error
     def test_TC_202(self):
         tc_no = "TC-202-JOG-_CNEN"
-        self.motm1.put('JOGF', 1)
-        ret = waitForStart(self.motm1, tc_no, 2.0)
-        self.assertEqual(True, ret, 'waitForStart return True')
-
         self.motm1.put('CNEN', 0)
+
+        self.motm1.put('JOGF', 1)
+
+        ret = waitForStart(self.motm1, tc_no, 2.0)
+        # dummy wait
 
         ret = waitForStop(self.motm1, tc_no, 2.0)
         self.assertEqual(True, ret, 'waitForStop return True')
        
         msta = int(self.motm1.get('MSTA'))
         print '%s Error msta=%x' % (tc_no, msta)
-        self.assertNotEqual(0, msta & self.MSTA_BIT_PROBLEM, 'Error MSTA.Problem)')
+        self.assertEqual(0, msta & self.MSTA_BIT_PROBLEM, 'Error MSTA.Problem)')
+        self.assertNotEqual(0, msta & self.MSTA_BIT_FOLLOW_ERR, 'Error MSTA.Following Error)')
         self.assertEqual(0, msta & self.MSTA_BIT_MOVING,     'Error MSTA.Moving)')
 
         bError   = self.pv_bError.get(use_monitor=False)
@@ -114,7 +117,7 @@ class Test(unittest.TestCase):
         self.assertNotEqual(0, bError,   'bError')
         self.assertNotEqual(0, nErrorId, 'nErrorId')
         
-        self.motm1.put('JOGF', 0)
+        self.motm1.put('STOP', 1)
         self.motm1.put('CNEN', 1)
 
         msta = int(self.pv_MSTA.get(use_monitor=False))
