@@ -82,7 +82,8 @@ run_nosetests ()
 }
 
 TESTEDMOTORAXIS=IOC:m1
-export TESTEDMOTORAXIS
+TESTEDMCUASYN=IOC:MCU1:asyn
+export TESTEDMOTORAXIS TESTEDMCUASYN
 while test $numruns -gt 0; do
   if test -n "$file"; then
     run_nosetests "$@" $file || exit 1
