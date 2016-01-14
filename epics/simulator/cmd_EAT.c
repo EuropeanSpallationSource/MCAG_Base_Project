@@ -316,6 +316,11 @@ static void motorHandleOneArg(const char *myarg_1)
     cmd_buf_printf("%d",cmd_Motor_cmd[motor_axis_no].bReset);
     return;
   }
+  /* fAcceleration? */
+  if (0 == strcmp(myarg_1, "fAcceleration?")) {
+    cmd_buf_printf("%f", cmd_Motor_cmd[motor_axis_no].acceleration);
+    return;
+  }
   /* fActPosition? */
   if (0 == strcmp(myarg_1, "fActPosition?")) {
     cmd_buf_printf("%f", getMotorPos(motor_axis_no));

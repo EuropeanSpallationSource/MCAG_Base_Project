@@ -311,29 +311,33 @@ asynStatus TwinCATmotorAxis::getValueFromController(const char* var, double *val
 
 /** Set velocity and acceleration for the axis
   * \param[in] maxVelocity, mm/sec
-  * \param[in] acceleration, seconds to maximum velocity
+  * \param[in] acceleration ???
   *
   */
-asynStatus TwinCATmotorAxis::sendVelocityAndAccelExecute(double maxVelocity, double acceleration)
+asynStatus TwinCATmotorAxis::sendVelocityAndAccelExecute(double maxVelocity, double acceleration_time)
 {
   asynStatus status;
   status = resetAxis();
   if (status) return status;
   /* We don't use minVelocity */
-
+  double maxVelocityEGU = maxVelocity * drvlocal.mres;
   if (!drvlocal.mres) {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
 	      "sendVelocityAndAccelExecute(%d) mres==0.0\n",  axisNo_);
     return asynError; /* No mres, no move */
   }
-
-  status = setValueOnAxis("fVelocity", maxVelocity * drvlocal.mres);
-  /* We don't send acceleration yet:
-     in the motorRecord acceleration is defined "as time in seconds to reach maxVelocity",
-     the motion controllers use "mm/sec2" or so.
-     Until we have the proper re-calculation, we use the default acceleration
-     configured in the  motion controller
-  */
+  if (acceleration_time > 0.0001) {
+    double acc_in_seconds = maxVelocity / acceleration_time;
+    double acc_in_EGU_sec2 = maxVelocityEGU / acc_in_seconds;
+    if (acc_in_EGU_sec2  < 0) acc_in_EGU_sec2 = 0 - acc_in_EGU_sec2 ;
+    status = setValueOnAxis("fAcceleration", acc_in_EGU_sec2);
+    if (status) return status;
+  } else {
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+	      "sendVelocityAndAccelExecute(%d) maxVelocityEGU=%g acceleration_time=%g\n",
+              axisNo_, maxVelocityEGU, acceleration_time);
+  }
+  status = setValueOnAxis("fVelocity", maxVelocityEGU);
   if (status == asynSuccess) status = setValueOnAxis("bExecute", 1);
   drvlocal.waitNumPollsBeforeReady += 2;
   return status;
@@ -766,13 +770,13 @@ asynStatus TwinCATmotorAxis::setDoubleParam(int function, double value)
                   "setDoubleParmotorStop_)=%f\n", value);
   } else if (function == pC_->motorVelocity_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(mmotorVelocity_=%f\n", value);
+                  "setDoubleParam(motorVelocity_=%f\n", value);
   } else if (function == pC_->motorVelBase_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
                   "setDoubleParam(motorVelBase_)=%f\n", value);
   } else if (function == pC_->motorAccel_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParamotorAccel_l_)=%f\n", value);
+                  "setDoubleParamotorAccel_)=%f\n", value);
 #if 0
   } else if (function == pC_->motorPosition_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
