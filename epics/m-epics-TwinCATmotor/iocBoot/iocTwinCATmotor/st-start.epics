@@ -13,4 +13,5 @@ TwinCATmotor_registerRecordDeviceDriver pdbbase
 
 ## Load record instances
 dbLoadRecords("db/TwinCATmotor.db")
+dbLoadRecords("db/TwinCATmotor-extra.db")
 

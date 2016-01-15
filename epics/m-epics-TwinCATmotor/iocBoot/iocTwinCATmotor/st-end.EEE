@@ -1,2 +1,3 @@
 dbLoadTemplate(TwinCATmotor.substitutions)
+dbLoadTemplate(TwinCATmotor-extra.substitutions)
 

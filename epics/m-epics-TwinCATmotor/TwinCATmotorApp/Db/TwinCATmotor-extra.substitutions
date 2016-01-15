@@ -1,0 +1,7 @@
+file "TwinCATmotor-extra.template"
+{
+pattern
+{P,      M,    R,   PORT, ADDR, HOMEPROC}
+{IOC:,   m1, m1-,   MCU1,    1, 3       }
+}
+

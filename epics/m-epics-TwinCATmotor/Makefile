@@ -8,4 +8,5 @@ SOURCES = \
   TwinCATmotorApp/src/TwinCATmotorMain.cpp
 
 TEMPLATES = \
-  TwinCATmotorApp/Db/TwinCATmotor.template
+  TwinCATmotorApp/Db/TwinCATmotor.template \
+  TwinCATmotorApp/Db/TwinCATmotor-extra.template
