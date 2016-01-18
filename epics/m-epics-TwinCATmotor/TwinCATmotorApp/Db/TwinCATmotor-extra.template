@@ -1,0 +1,8 @@
+record(longout,"$(P)$(R)HOME_PROC") {
+    field(DESC, "Homing Procedure")
+    field(VAL, "$(HOMEPROC)")
+    field(DTYP, "asynInt32")
+    field(PINI, "YES")
+    field(OUT,"@asyn($(PORT),$(ADDR))HOME_PROC")
+}
+

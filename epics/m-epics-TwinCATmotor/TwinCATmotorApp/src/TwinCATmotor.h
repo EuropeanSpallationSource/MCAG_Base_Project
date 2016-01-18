@@ -18,6 +18,7 @@ FILENAME...   TwinCATmotor.h
 
 #define BERRORString                    "BERROR"
 #define NERRORIDString                  "NERRORID"
+#define HOME_PROCString                 "HOME_PROC"
 
 extern "C" {
   int TwinCATmotorCreateAxis(const char *TwinCATmotorName, int axisNo,
@@ -148,6 +149,8 @@ public:
 
   /* First parameter */
   int TwinCATmotorBError_;
+  int TwinCATmotorHomeProc_;
+
 #ifdef CREATE_MOTOR_REC_RESOLUTION
   int motorRecResolution_;
   int motorRecDirection_;

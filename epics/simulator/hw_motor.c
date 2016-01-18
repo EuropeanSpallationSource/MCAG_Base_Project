@@ -10,18 +10,37 @@
 #define MOTOR_REV_ERES (-57)
 #define MOTOR_PARK_POS (-64)
 
-#define MOTOR_VEL_HOME_MAX 3.0
+/* Homing procdures LS=Limit switch, HS=Home switch */
+#define HOME_PROC_LOW_LS  1
+#define HOME_PROC_HIGH_LS 2
+#define HOME_PROC_LOW_HS  3
+#define HOME_PROC_HIGH_HS 4
+
+#define MOTOR_VEL_HOME_MAX 5.0
 
 typedef struct
 {
   struct timeval lastPollTime;
 
   double amplifierPercent;
-  double HomePos;     /* home switch */
-  double highSoftLimitPos;
-  double lowSoftLimitPos;
+  /* What the (simulated) hardware has physically.
+     When homing against the high limit switch is done,
+     all logical values will be re-calculated.
+  */
+  double HWlowPos;
+  double HWhighPos;
+  double HWhomeSwitchpos;
+  /*
+     What the (simulated) hardware has logically.
+  */
+  double HomeSwitchPos;     /* home switch */
+  double HomeProcPos;       /* Position of used home switch */
   double highHardLimitPos;
   double lowHardLimitPos;
+
+  /* What EPICS sends us */
+  double highSoftLimitPos;
+  double lowSoftLimitPos;
   int definedLowHardLimitPos;
   int definedHighHardLimitPos;
   int enabledLowSoftLimitPos;
@@ -51,6 +70,45 @@ static motor_axis_type motor_axis[MAX_AXES];
 static motor_axis_type motor_axis_last[MAX_AXES];
 static motor_axis_type motor_axis_reported[MAX_AXES];
 
+static void recalculate_pos(int axis_no, int nCmdData)
+{
+  double HWlowPos = motor_axis[axis_no].HWlowPos;
+  double HWhomeSwitchpos = motor_axis[axis_no].HWhomeSwitchpos;
+  double HWhighPos = motor_axis[axis_no].HWhighPos;
+  double oldLowHardLimitPos = motor_axis[axis_no].lowHardLimitPos;
+  switch (nCmdData) {
+    case HOME_PROC_LOW_LS:
+      motor_axis[axis_no].lowHardLimitPos = 0;
+      motor_axis[axis_no].HomeSwitchPos = HWhomeSwitchpos - HWlowPos;
+      motor_axis[axis_no].highHardLimitPos = HWhighPos - HWlowPos;
+      break;
+    case HOME_PROC_HIGH_LS:
+      motor_axis[axis_no].lowHardLimitPos = HWlowPos - HWhighPos;
+      motor_axis[axis_no].HomeSwitchPos = HWhomeSwitchpos - HWhighPos;
+      motor_axis[axis_no].highHardLimitPos = 0;
+      break;
+    case HOME_PROC_LOW_HS:
+    case HOME_PROC_HIGH_HS:
+      motor_axis[axis_no].lowHardLimitPos = HWlowPos;
+      motor_axis[axis_no].HomeSwitchPos = 0;
+      motor_axis[axis_no].highHardLimitPos = HWhighPos;
+      break;
+  }
+  motor_axis[axis_no].HomeProcPos = 0; /* in any case */
+  motor_axis[axis_no].MotorPosWanted = 0;
+  /* adjust position to "force a simulated movement" */
+  motor_axis[axis_no].MotorPosNow += motor_axis[axis_no].lowHardLimitPos - oldLowHardLimitPos;
+
+  fprintf(stdlog,
+          "%s/%s:%d axis_no=%d MotorPosNow=%g lowHardLimitPos=%f HomeSwitchPos=%f higHardLimitPos=%f\n",
+          __FILE__, __FUNCTION__, __LINE__,
+          axis_no,
+          motor_axis[axis_no].MotorPosNow,
+          motor_axis[axis_no].lowHardLimitPos,
+          motor_axis[axis_no].HomeSwitchPos,
+          motor_axis[axis_no].highHardLimitPos);
+}
+
 static double getEncoderPosFromMotorPos(int axis_no, double MotorPosNow)
 {
   (void)axis_no;
@@ -75,7 +133,7 @@ void hw_motor_init(int axis_no)
     memset(&motor_axis[axis_no], 0, sizeof(motor_axis[axis_no]));
     memset(&motor_axis_last[axis_no], 0, sizeof(motor_axis_last[axis_no]));
     memset(&motor_axis_reported[axis_no], 0, sizeof(motor_axis_reported[axis_no]));
-    motor_axis[axis_no].HomePos = MOTOR_POS_HOME;
+    motor_axis[axis_no].HomeSwitchPos = MOTOR_POS_HOME;
     motor_axis[axis_no].amplifierPercent = 100;
     motor_axis[axis_no].MaxHomeVelocityAbs = MOTOR_VEL_HOME_MAX;
     setMotorParkingPosition(axis_no, MOTOR_PARK_POS);
@@ -127,7 +185,7 @@ void setHomePos(int axis_no, double value)
   if (((axis_no) <= 0) || ((axis_no) >=MAX_AXES)) {
     return;
   }
-  motor_axis[axis_no].HomePos = value;
+  motor_axis[axis_no].HomeSwitchPos = value;
 }
 
 void setMaxHomeVelocityAbs(int axis_no, double value)
@@ -175,7 +233,7 @@ int getAxisHome(int axis_no)
 {
   AXIS_CHECK_RETURN_ZERO(axis_no);
   int ret;
-  ret = (motor_axis[axis_no].MotorPosNow == motor_axis[axis_no].HomePos);
+  ret = (motor_axis[axis_no].MotorPosNow == motor_axis[axis_no].HomeProcPos);
   return ret;
 }
 
@@ -299,6 +357,34 @@ static int soft_limits_clip(int axis_no, double velocity)
   return clipped;
 } /* Soft limits */
 
+void setHWlowPos (int axis_no, double value)
+{
+  fprintf(stdlog,
+          "%s/%s:%d axis_no=%d value=%f\n",
+          __FILE__, __FUNCTION__, __LINE__, axis_no, value);
+  AXIS_CHECK_RETURN(axis_no);
+  motor_axis[axis_no].HWlowPos = value;
+}
+
+void setHWhighPos(int axis_no, double value)
+{
+  fprintf(stdlog,
+          "%s/%s:%d axis_no=%d value=%f\n",
+          __FILE__, __FUNCTION__, __LINE__, axis_no, value);
+  AXIS_CHECK_RETURN(axis_no);
+  motor_axis[axis_no].HWhighPos = value;
+}
+
+void setHWhomeSwitchpos(int axis_no, double value)
+{
+  fprintf(stdlog,
+          "%s/%s:%d axis_no=%d value=%f\n",
+          __FILE__, __FUNCTION__, __LINE__, axis_no, value);
+  AXIS_CHECK_RETURN(axis_no);
+  motor_axis[axis_no].HWhomeSwitchpos = value;
+}
+
+
 static void simulateMotion(int axis_no)
 {
   struct timeval timeNow;
@@ -347,14 +433,14 @@ static void simulateMotion(int axis_no)
       (timeNow.tv_sec - motor_axis[axis_no].lastPollTime.tv_sec);
 
     if (((motor_axis[axis_no].velo.HomeVelocity > 0) &&
-         (motor_axis[axis_no].MotorPosNow > motor_axis[axis_no].HomePos)) ||
+         (motor_axis[axis_no].MotorPosNow > motor_axis[axis_no].HomeProcPos)) ||
         ((motor_axis[axis_no].velo.HomeVelocity < 0) &&
-         (motor_axis[axis_no].MotorPosNow < motor_axis[axis_no].HomePos))) {
+         (motor_axis[axis_no].MotorPosNow < motor_axis[axis_no].HomeProcPos))) {
       /* overshoot or undershoot. We are at home */
-      motor_axis[axis_no].MotorPosNow = motor_axis[axis_no].HomePos;
+      motor_axis[axis_no].MotorPosNow = motor_axis[axis_no].HomeProcPos;
     }
   }
-  if (motor_axis[axis_no].MotorPosNow == motor_axis[axis_no].HomePos) {
+  if (motor_axis[axis_no].MotorPosNow == motor_axis[axis_no].HomeProcPos) {
     motor_axis[axis_no].velo.HomeVelocity = 0;
     motor_axis[axis_no].homed = 1;
   }
@@ -482,15 +568,44 @@ int movePosition(int axis_no,
 }
 
 
-/* caput pv.HOMF, caput pv.HOMR */
-int moveHome(int axis_no,
-             int direction,
-             double max_velocity,
-             double acceleration)
+int moveHomeProc(int axis_no,
+                 int direction,
+                 int nCmdData,
+                 double max_velocity,
+                 double acceleration)
 {
-  double position = motor_axis[axis_no].HomePos;
+  double position;
   double velocity = max_velocity ? max_velocity : motor_axis[axis_no].MaxHomeVelocityAbs;
   velocity = fabs(velocity);
+  fprintf(stdlog, "%s/%s:%d axis_no=%d nCmdData=%d max_velocity=%g velocity=%g acceleration=%g\n",
+          __FILE__, __FUNCTION__, __LINE__,
+          axis_no,
+          nCmdData,
+          max_velocity,
+          velocity,
+          acceleration);
+  recalculate_pos(axis_no, nCmdData);
+  position = motor_axis[axis_no].HomeProcPos;
+  switch (nCmdData) {
+    case HOME_PROC_LOW_LS:
+      if (!motor_axis[axis_no].definedLowHardLimitPos)
+        return -1;
+      motor_axis[axis_no].HomeProcPos = motor_axis[axis_no].lowHardLimitPos;
+      break;
+    case HOME_PROC_HIGH_LS:
+      if (!motor_axis[axis_no].definedHighHardLimitPos)
+        return -1;
+      motor_axis[axis_no].HomeProcPos =
+        motor_axis[axis_no].highHardLimitPos;
+      break;
+    case HOME_PROC_LOW_HS:
+    case HOME_PROC_HIGH_HS:
+      motor_axis[axis_no].HomeProcPos = motor_axis[axis_no].HomeSwitchPos;
+      break;
+    default:
+      return -1;
+  }
+  position = motor_axis[axis_no].HomeProcPos;
 
   if (motor_axis[axis_no].MaxHomeVelocityAbs &&
       (fabs(velocity) > motor_axis[axis_no].MaxHomeVelocityAbs)) {
@@ -518,6 +633,17 @@ int moveHome(int axis_no,
 
   return 0;
 };
+
+ /* caput pv.HOMF, caput pv.HOMR */
+int moveHome(int axis_no,
+             int direction,
+             double max_velocity,
+             double acceleration)
+{
+  return moveHomeProc(axis_no, direction,
+                      HOME_PROC_LOW_HS, /* int nCmdData, */
+                      max_velocity,acceleration);
+}
 
 
 /* caput pv.JOGF, caput pv.JOGR */

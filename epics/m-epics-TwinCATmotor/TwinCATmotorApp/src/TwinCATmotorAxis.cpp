@@ -375,6 +375,15 @@ asynStatus TwinCATmotorAxis::move(double position, int relative, double minVeloc
 asynStatus TwinCATmotorAxis::home(double minVelocity, double maxVelocity, double acceleration, int forwards)
 {
   asynStatus status = asynSuccess;
+  int motorHomeProc = -1;
+  status = pC_->getIntegerParam(axisNo_, pC_->TwinCATmotorHomeProc_, &motorHomeProc);
+
+  asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+            "home() motorHomeProc=%d status=%s (%d)\n",
+            motorHomeProc,
+            pasynManager->strStatus(status), (int)status);
+
+  status = asynSuccess;
 
   /* The controller will do the home search, and change its internal
      raw value to what we specified in fPosition. Use 0 */
@@ -382,9 +391,9 @@ asynStatus TwinCATmotorAxis::home(double minVelocity, double maxVelocity, double
   if (status == asynSuccess) status = updateSoftLimitsIfDirty(__LINE__);
   if ((drvlocal.axisFlags & AMPLIFIER_ON_FLAG_WHEN_HOMING) &&
       (status == asynSuccess)) status = enableAmplifier(1);
-  if (status == asynSuccess) status = setValueOnAxis("fPosition", 0 * drvlocal.mres);
+  if (status == asynSuccess) status = setValueOnAxis("fPosition", 0);
   if (status == asynSuccess) status = setValueOnAxis("nCommand", 10);
-  if (status == asynSuccess) status = setValueOnAxis("nCmdData", 0);
+  if (status == asynSuccess) status = setValueOnAxis("nCmdData", motorHomeProc);
   if (status == asynSuccess) status = sendVelocityAndAccelExecute(maxVelocity, acceleration);
 
   return status;
@@ -712,6 +721,11 @@ asynStatus TwinCATmotorAxis::setIntegerParam(int function, int value)
   } else if (function == pC_->motorRecDirection_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
                   "setIntegerParam(motorRecDirection_)=%d\n", value);
+#endif
+#ifdef HOME_PROCString
+  } else if (function == pC_->TwinCATmotorHomeProc_) {
+      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+                  "setIntegerParam(TwinCATmotorHomeProc_)=%d\n", value);
 #endif
   }
 

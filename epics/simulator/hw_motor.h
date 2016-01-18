@@ -22,6 +22,10 @@ void setMotorReverseERES(int axis_no, double value);
 double getMotorVelocity(int axis_no);
 int isMotorMoving(int axis_no);
 
+void setHWlowPos (int axis_no, double value);
+void setHWhighPos(int axis_no, double value);
+void setHWhomeSwitchpos(int axis_no, double value);
+
 double getLowSoftLimitPos(int axis_no);
 void   setLowSoftLimitPos(int axis_no, double value);
 void   enableLowSoftLimit(int axis_no, int value);
@@ -51,6 +55,27 @@ int set_nErrorId(int axis_no, int value);
 int movePosition(int axis_no,
                  double position,
                  int relative,
+                 double max_velocity,
+                 double acceleration);
+
+
+/*
+ *  moveHome
+ *  move until the home switch is hit
+ *
+ *  direction:    either <0 or >=0, from which direction the switch
+ *                should be reached (Which means that we may run over
+ *                the switch and return from the other side with min_velocity
+ *  nCmdData      The homig procedure as described in a separate document
+ *  max_velocity: >0 velocity after acceleration has been done
+ *  acceleration: time in seconds to reach max_velocity
+ *
+ *  return value: 0 == OK,
+ *                error codes and error handling needs to be defined
+ */
+int moveHomeProc(int axis_no,
+                 int direction,
+                 int nCmdData,
                  double max_velocity,
                  double acceleration);
 

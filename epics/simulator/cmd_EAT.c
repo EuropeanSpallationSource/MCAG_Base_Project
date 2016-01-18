@@ -34,12 +34,19 @@ static void init_axis(int axis_no)
     return;
   }
   if (!init_done[axis_no]) {
+    double valueLow = -141.0 * ReverseMRES;
+    double valueHigh = 14.0 * ReverseMRES;
     hw_motor_init(axis_no);
     setMotorReverseERES(axis_no, MRES/ERES);
     setMotorParkingPosition(axis_no, -64 * ReverseMRES); /* steps */
-    setMaxHomeVelocityAbs(axis_no, 3 * ReverseMRES);
-    setLowHardLimitPos(axis_no,  -141.0 * ReverseMRES);
-    setHighHardLimitPos(axis_no, 14.0 * ReverseMRES);
+    setMaxHomeVelocityAbs(axis_no, 5 * ReverseMRES);
+    setLowHardLimitPos(axis_no,  valueLow);
+    setHighHardLimitPos(axis_no, valueHigh);
+    /* These physical values will not change when homing */
+    setHWlowPos (axis_no, valueLow);
+    setHWhighPos(axis_no, valueHigh);
+    setHWhomeSwitchpos(axis_no, 0);
+
     init_done[axis_no] = 1;
   }
 }
@@ -484,8 +491,9 @@ static void motorHandleOneArg(const char *myarg_1)
           break;
         case 10:
         {
-          (void)moveHome(motor_axis_no,
+          (void)moveHomeProc(motor_axis_no,
                          0, /* direction, */
+                         cmd_Motor_cmd[motor_axis_no].nCmdData,
                          cmd_Motor_cmd[motor_axis_no].velocity,
                          cmd_Motor_cmd[motor_axis_no].acceleration);
           cmd_buf_printf("OK");
