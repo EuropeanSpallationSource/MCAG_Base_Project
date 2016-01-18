@@ -651,16 +651,6 @@ asynStatus TwinCATmotorAxis::poll(bool *moving)
   } else if (st_axis_status.fActPosition < drvlocal.oldPosition) {
     setIntegerParam(pC_->motorStatusDirection_, 0);
   }
-  drvlocal.oldPosition = st_axis_status.fActPosition;
-  if (drvlocal.mres) {
-    setDoubleParam(pC_->motorPosition_, st_axis_status.fActPosition / drvlocal.mres);
-  }
-  if (drvlocal.externalEncoderStr) {
-    double fEncPosition;
-    comStatus = getValueFromController(drvlocal.externalEncoderStr, &fEncPosition);
-    if (!comStatus) setDoubleParam(pC_->motorEncoderPosition_, fEncPosition);
-  }
-
   nowMoving = st_axis_status.bBusy && st_axis_status.bExecute && st_axis_status.bEnabled;
   if (drvlocal.waitNumPollsBeforeReady) {
     drvlocal.waitNumPollsBeforeReady--;
@@ -670,6 +660,20 @@ asynStatus TwinCATmotorAxis::poll(bool *moving)
     setIntegerParam(pC_->motorStatusDone_, !nowMoving);
     *moving = nowMoving ? true : false;
   }
+
+  drvlocal.oldPosition = st_axis_status.fActPosition;
+  if (drvlocal.mres) {
+    double newPositionInSteps = st_axis_status.fActPosition / drvlocal.mres;
+    /* If not moving, trigger a record processing at low rate */
+    if (!nowMoving) setDoubleParam(pC_->motorPosition_, newPositionInSteps + 1);
+    setDoubleParam(pC_->motorPosition_, newPositionInSteps);
+  }
+  if (drvlocal.externalEncoderStr) {
+    double fEncPosition;
+    comStatus = getValueFromController(drvlocal.externalEncoderStr, &fEncPosition);
+    if (!comStatus) setDoubleParam(pC_->motorEncoderPosition_, fEncPosition);
+  }
+
   if (drvlocal.oldNowMoving != nowMoving) {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
               "poll(%d) nowMoving=%d bBusy=%d bExecute=%d fActPosition=%f\n",
