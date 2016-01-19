@@ -57,18 +57,18 @@ static const char * const Main_dot_str = "Main.";
 static const char *seperator_seperator = ";";
 
 static int motorHandleADS_ADR_getInt(unsigned adsport,
-                                     unsigned group_no,
-                                     unsigned offset_in_group,
+                                     unsigned indexGroup,
+                                     unsigned indexOffset,
                                      int *iValue)
 {
-  if (group_no == 0x3040010 && offset_in_group == 0x80000049) {
+  if (indexGroup == 0x3040010 && indexOffset == 0x80000049) {
     *iValue = (int)getEncoderPos(1);
     return 0;
   }
-  RETURN_ERROR_OR_DIE(__LINE__, "%s/%s:%d group_no=0x%x offset_in_group=0x%x",
+  RETURN_ERROR_OR_DIE(__LINE__, "%s/%s:%d indexGroup=0x%x indexOffset=0x%x",
                       __FILE__, __FUNCTION__, __LINE__,
-                      group_no,
-                      offset_in_group);
+                      indexGroup,
+                      indexOffset);
 }
 
 /*
@@ -76,35 +76,35 @@ static int motorHandleADS_ADR_getInt(unsigned adsport,
   ADSPORT=501/.ADR.16#5001,16#C,2,2=1; #enable high Softlimit
 */
 static int motorHandleADS_ADR_putInt(unsigned adsport,
-                                     unsigned group_no,
-                                     unsigned offset_in_group,
+                                     unsigned indexGroup,
+                                     unsigned indexOffset,
                                      int iValue)
 {
-  if (group_no >= 0x5000 && group_no < 0x6000) {
-    int motor_axis_no = (int)group_no - 0x5000;
-    if (offset_in_group == 0xB) {
+  if (indexGroup >= 0x5000 && indexGroup < 0x6000) {
+    int motor_axis_no = (int)indexGroup - 0x5000;
+    if (indexOffset == 0xB) {
       enableLowSoftLimit(motor_axis_no, iValue);
       return 0;
     }
-    if (offset_in_group == 0xC) {
+    if (indexOffset == 0xC) {
       enableHighSoftLimit(motor_axis_no, iValue);
       return 0;
     }
   }
-  if (group_no == 0x4001 && offset_in_group == 0x15) {
+  if (indexGroup == 0x4001 && indexOffset == 0x15) {
     return 0; /* Monitor */
   }
 
-  RETURN_ERROR_OR_DIE(__LINE__, "%s/%s:%d group_no=0x%x offset_in_group=0x%x",
+  RETURN_ERROR_OR_DIE(__LINE__, "%s/%s:%d indexGroup=0x%x indexOffset=0x%x",
                __FILE__, __FUNCTION__, __LINE__,
-               group_no,
-               offset_in_group);
+               indexGroup,
+               indexOffset);
 }
 
 
 static int motorHandleADS_ADR_getFloat(unsigned adsport,
-                                       unsigned group_no,
-                                       unsigned offset_in_group,
+                                       unsigned indexGroup,
+                                       unsigned indexOffset,
                                        double *fValue)
 {
   return __LINE__;
@@ -115,17 +115,17 @@ static int motorHandleADS_ADR_getFloat(unsigned adsport,
   ADSPORT=501/.ADR.16#5001,16#E,8,5=140.0; #high Softlimit
 */
 static int motorHandleADS_ADR_putFloat(unsigned adsport,
-                                       unsigned group_no,
-                                       unsigned offset_in_group,
+                                       unsigned indexGroup,
+                                       unsigned indexOffset,
                                        double fValue)
 {
-  if (group_no >= 0x5000 && group_no < 0x6000) {
-    int motor_axis_no = (int)group_no - 0x5000;
-    if (offset_in_group == 0xD) {
+  if (indexGroup >= 0x5000 && indexGroup < 0x6000) {
+    int motor_axis_no = (int)indexGroup - 0x5000;
+    if (indexOffset == 0xD) {
       setLowSoftLimitPos(motor_axis_no, fValue);
       return 0;
     }
-    if (offset_in_group == 0xE) {
+    if (indexOffset == 0xE) {
       setHighSoftLimitPos(motor_axis_no, fValue);
       return 0;
     }
@@ -141,24 +141,24 @@ static int motorHandleADS_ADR(const char *arg)
 {
   const char *myarg_1 = NULL;
   unsigned adsport = 0;
-  unsigned group_no = 0;
-  unsigned offset_in_group = 0;
+  unsigned indexGroup = 0;
+  unsigned indexOffset = 0;
   unsigned len_in_PLC = 0;
   unsigned type_in_PLC = 0;
   int nvals;
   nvals = sscanf(arg, "%u/.ADR.16#%x,16#%x,%u,%u=",
                  &adsport,
-                 &group_no,
-                 &offset_in_group,
+                 &indexGroup,
+                 &indexOffset,
                  &len_in_PLC,
                  &type_in_PLC);
   LOGINFO6("%s/%s:%d "
-           "nvals=%d adsport=%u group_no=0x%x offset_in_group=0x%x len_in_PLC=%u type_in_PLC=%u\n",
+           "nvals=%d adsport=%u indexGroup=0x%x indexOffset=0x%x len_in_PLC=%u type_in_PLC=%u\n",
            __FILE__, __FUNCTION__, __LINE__,
            nvals,
            adsport,
-           group_no,
-           offset_in_group,
+           indexGroup,
+           indexOffset,
            len_in_PLC,
            type_in_PLC);
 
@@ -175,8 +175,8 @@ static int motorHandleADS_ADR(const char *arg)
         nvals = sscanf(myarg_1, "%lf", &fValue);
         if (nvals != 1) return __LINE__;
         return motorHandleADS_ADR_putFloat(adsport,
-                                        group_no,
-                                        offset_in_group,
+                                        indexGroup,
+                                        indexOffset,
                                         fValue);
       }
         break;
@@ -186,8 +186,8 @@ static int motorHandleADS_ADR(const char *arg)
         nvals = sscanf(myarg_1, "%d", &iValue);
         if (nvals != 1) return __LINE__;
         return motorHandleADS_ADR_putInt(adsport,
-                                      group_no,
-                                      offset_in_group,
+                                      indexGroup,
+                                      indexOffset,
                                       iValue);
       }
         break;
@@ -204,9 +204,9 @@ static int motorHandleADS_ADR(const char *arg)
         double fValue;
         if (len_in_PLC != 8) return __LINE__;
         res = motorHandleADS_ADR_getFloat(adsport,
-                                           group_no,
-                                           offset_in_group,
-                                           &fValue);
+                                          indexGroup,
+                                          indexOffset,
+                                          &fValue);
         if (res) return res;
         cmd_buf_printf("%f", fValue);
         return -1;
@@ -217,8 +217,8 @@ static int motorHandleADS_ADR(const char *arg)
         int iValue = -1;
         if (len_in_PLC != 2) return __LINE__;
         res = motorHandleADS_ADR_getInt(adsport,
-                                        group_no,
-                                        offset_in_group,
+                                        indexGroup,
+                                        indexOffset,
                                         &iValue);
         if (res) return res;
         cmd_buf_printf("%d", iValue);

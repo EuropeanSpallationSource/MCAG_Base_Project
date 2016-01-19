@@ -104,19 +104,19 @@ private:
 
   asynStatus writeReadACK(void);
   asynStatus setValueOnAxis(const char* var, int value);
-  asynStatus setValueOnAxisVerify(const char *var, const char *rbvar, 
+  asynStatus setValueOnAxisVerify(const char *var, const char *rbvar,
                                   int value, unsigned int retryCount);
   asynStatus setValueOnAxis(const char* var, double value);
   int getMotionAxisID(void);
-  asynStatus setValueOnAxis(unsigned adsport,
-			    unsigned group_no, 
-			    unsigned offset_in_group,
-			    int value);
+  asynStatus setADRValueOnAxis(unsigned adsport,
+                               unsigned indexGroup,
+                               unsigned indexOffset,
+                               int value);
 
-  asynStatus setValueOnAxis(unsigned adsport,
-			    unsigned group_no, 
-			    unsigned offset_in_group,
-			    double value);
+  asynStatus setADRValueOnAxis(unsigned adsport,
+                               unsigned indexGroup,
+                               unsigned indexOffset,
+                               double value);
 
   asynStatus getValueFromAxis(const char* var, int *value);
   asynStatus getValueFromAxis(const char* var, double *value);

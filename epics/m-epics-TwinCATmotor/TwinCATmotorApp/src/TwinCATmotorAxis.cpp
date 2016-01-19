@@ -102,7 +102,7 @@ void TwinCATmotorAxis::handleStatusChange(asynStatus newStatus)
       status = enableAmplifier(1);
     }
     /*  Enable "Target Position Monitoring" */
-    if (status == asynSuccess) status = setValueOnAxis(501, 0x4000, 0x15, 1);
+    if (status == asynSuccess) status = setADRValueOnAxis(501, 0x4000, 0x15, 1);
   }
 }
 
@@ -222,27 +222,27 @@ int TwinCATmotorAxis::getMotionAxisID(void)
   return ret;
 }
 
-asynStatus TwinCATmotorAxis::setValueOnAxis(unsigned adsport,
-					    unsigned group_no,
-					    unsigned offset_in_group,
-					    int value)
+asynStatus TwinCATmotorAxis::setADRValueOnAxis(unsigned adsport,
+                                               unsigned indexGroup,
+                                               unsigned indexOffset,
+                                               int value)
 {
   int axisID = getMotionAxisID();
   if (axisID < 0) return asynError;
   sprintf(pC_->outString_, "ADSPORT=%u/.ADR.16#%X,16#%X,2,2=%d",
-	  adsport, group_no + axisID, offset_in_group, value);
+	  adsport, indexGroup + axisID, indexOffset, value);
   return writeReadACK();
 }
 
-asynStatus TwinCATmotorAxis::setValueOnAxis(unsigned adsport,
-					    unsigned group_no,
-					    unsigned offset_in_group,
-					    double value)
+asynStatus TwinCATmotorAxis::setADRValueOnAxis(unsigned adsport,
+                                               unsigned indexGroup,
+                                               unsigned indexOffset,
+                                               double value)
 {
   int axisID = getMotionAxisID();
   if (axisID < 0) return asynError;
   sprintf(pC_->outString_, "ADSPORT=%u/.ADR.16#%X,16#%X,8,5=%f",
-	  adsport, group_no + axisID, offset_in_group, value);
+	  adsport, indexGroup + axisID, indexOffset, value);
   return writeReadACK();
 }
 
@@ -448,9 +448,9 @@ asynStatus TwinCATmotorAxis::setMotorHighLimitOnAxis(void)
   int enable = drvlocal.defined.motorHighLimit;
   if (drvlocal.motorHighLimit <= drvlocal.motorLowLimit) enable = 0;
   if (enable && (status == asynSuccess)) {
-    status = setValueOnAxis(501, 0x5000, 0xE, drvlocal.motorHighLimit * drvlocal.mres);
+    status = setADRValueOnAxis(501, 0x5000, 0xE, drvlocal.motorHighLimit * drvlocal.mres);
   }
-  if (status == asynSuccess) status = setValueOnAxis(501, 0x5000, 0xC, enable);
+  if (status == asynSuccess) status = setADRValueOnAxis(501, 0x5000, 0xC, enable);
   return status;
 }
 
@@ -464,9 +464,9 @@ asynStatus TwinCATmotorAxis::setMotorLowLimitOnAxis(void)
   int enable = drvlocal.defined.motorLowLimit;
   if (drvlocal.motorHighLimit <= drvlocal.motorLowLimit) enable = 0;
   if (enable && (status == asynSuccess)) {
-    status = setValueOnAxis(501, 0x5000, 0xD, drvlocal.motorLowLimit * drvlocal.mres);
+    status = setADRValueOnAxis(501, 0x5000, 0xD, drvlocal.motorLowLimit * drvlocal.mres);
   }
-  if (status == asynSuccess) status = setValueOnAxis(501, 0x5000, 0xB, enable);
+  if (status == asynSuccess) status = setADRValueOnAxis(501, 0x5000, 0xB, enable);
   return status;
 }
 
