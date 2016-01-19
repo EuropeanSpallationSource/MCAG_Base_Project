@@ -206,13 +206,31 @@ asynStatus TwinCATmotorAxis::setValueOnAxis(const char* var, double value)
   return writeReadACK();
 }
 
+int TwinCATmotorAxis::getMotionAxisID(void)
+{
+  int ret = drvlocal.dirty.nMotionAxisID;
+  if (ret < 0) {
+    asynStatus comStatus = getValueFromAxis("nMotionAxisID", &ret);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "getMotionAxisID(%d) comStatus=%d ret=%d\n",
+              axisNo_, (int)comStatus, ret);
+    if (comStatus) return -1;
+  }
+
+  if (ret >= 0) drvlocal.dirty.nMotionAxisID = ret;;
+
+  return ret;
+}
+
 asynStatus TwinCATmotorAxis::setValueOnAxis(unsigned adsport,
 					    unsigned group_no,
 					    unsigned offset_in_group,
 					    int value)
 {
+  int axisID = getMotionAxisID();
+  if (axisID < 0) return asynError;
   sprintf(pC_->outString_, "ADSPORT=%u/.ADR.16#%X,16#%X,2,2=%d",
-	  adsport, group_no + axisNo_, offset_in_group, value);
+	  adsport, group_no + axisID, offset_in_group, value);
   return writeReadACK();
 }
 
@@ -221,8 +239,10 @@ asynStatus TwinCATmotorAxis::setValueOnAxis(unsigned adsport,
 					    unsigned offset_in_group,
 					    double value)
 {
+  int axisID = getMotionAxisID();
+  if (axisID < 0) return asynError;
   sprintf(pC_->outString_, "ADSPORT=%u/.ADR.16#%X,16#%X,8,5=%f",
-	  adsport, group_no + axisNo_, offset_in_group, value);
+	  adsport, group_no + axisID, offset_in_group, value);
   return writeReadACK();
 }
 

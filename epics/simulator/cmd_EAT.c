@@ -349,6 +349,14 @@ static void motorHandleOneArg(const char *myarg_1)
     cmd_buf_printf("%d", cmd_Motor_cmd[motor_axis_no].command_no);
     return;
   }
+  /* nMotionAxisID? */
+  if (0 == strcmp(myarg_1, "nMotionAxisID?")) {
+    /* The NC axis id is the same as motion axis id */
+    printf("%s/%s:%d %s(%d)\n",  __FILE__, __FUNCTION__, __LINE__,
+           myarg_1, motor_axis_no);
+    cmd_buf_printf("%d", motor_axis_no);
+    return;
+  }
   /* stAxisStatus? */
   if (0 == strcmp(myarg_1, "stAxisStatus?")) {
     int bEnable = getAmplifierOn(motor_axis_no);
