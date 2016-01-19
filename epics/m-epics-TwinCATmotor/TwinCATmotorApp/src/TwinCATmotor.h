@@ -84,6 +84,7 @@ private:
     /* Which values have changed in the EPICS IOC, but are not updated in the
        motion controller */
     struct {
+      int          nMotionAxisID;     /* Needed for ADR commands */
       unsigned int motorLimits      :1;
       unsigned int mustStop         :1;
       unsigned int reportDisconnect :1;
@@ -103,18 +104,19 @@ private:
 
   asynStatus writeReadACK(void);
   asynStatus setValueOnAxis(const char* var, int value);
-  asynStatus setValueOnAxisVerify(const char *var, const char *rbvar, 
+  asynStatus setValueOnAxisVerify(const char *var, const char *rbvar,
                                   int value, unsigned int retryCount);
   asynStatus setValueOnAxis(const char* var, double value);
-  asynStatus setValueOnAxis(unsigned adsport,
-			    unsigned group_no, 
-			    unsigned offset_in_group,
-			    int value);
+  int getMotionAxisID(void);
+  asynStatus setADRValueOnAxis(unsigned adsport,
+                               unsigned indexGroup,
+                               unsigned indexOffset,
+                               int value);
 
-  asynStatus setValueOnAxis(unsigned adsport,
-			    unsigned group_no, 
-			    unsigned offset_in_group,
-			    double value);
+  asynStatus setADRValueOnAxis(unsigned adsport,
+                               unsigned indexGroup,
+                               unsigned indexOffset,
+                               double value);
 
   asynStatus getValueFromAxis(const char* var, int *value);
   asynStatus getValueFromAxis(const char* var, double *value);
