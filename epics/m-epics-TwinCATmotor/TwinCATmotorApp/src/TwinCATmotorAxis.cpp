@@ -396,26 +396,35 @@ asynStatus TwinCATmotorAxis::home(double minVelocity, double maxVelocity, double
 {
   asynStatus status = asynSuccess;
   int motorHomeProc = -1;
-  status = pC_->getIntegerParam(axisNo_, pC_->TwinCATmotorHomeProc_, &motorHomeProc);
-
+  double homeVeloTowardsHomeSensor = 0;
+                                                         
+  if (status == asynSuccess) status = pC_->getDoubleParam(axisNo_,
+                                                          pC_->TwinCATmotorHOME_VEL_TO_,
+                                                          &homeVeloTowardsHomeSensor);
+  if (status == asynSuccess) status = pC_->getIntegerParam(axisNo_,
+                                                           pC_->TwinCATmotorHomeProc_,
+                                                           &motorHomeProc);
   asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-            "home() motorHomeProc=%d status=%s (%d)\n",
-            motorHomeProc,
+            "home() motorHomeProc=%d homeVeloTowardsHomeSensor=%f status=%s (%d)\n",
+            motorHomeProc, homeVeloTowardsHomeSensor,
             pasynManager->strStatus(status), (int)status);
-
-  status = asynSuccess;
 
   /* The controller will do the home search, and change its internal
      raw value to what we specified in fPosition. Use 0 */
   if (status == asynSuccess) status = stopAxisInternal(__FUNCTION__, 0);
-  if (status == asynSuccess) status = updateSoftLimitsIfDirty(__LINE__);
   if ((drvlocal.axisFlags & AMPLIFIER_ON_FLAG_WHEN_HOMING) &&
       (status == asynSuccess)) status = enableAmplifier(1);
-  if (status == asynSuccess) status = setValueOnAxis("fPosition", 0);
+  if (status == asynSuccess) status = setValueOnAxis("fHomePosition", 0);
   if (status == asynSuccess) status = setValueOnAxis("nCommand", 10);
   if (status == asynSuccess) status = setValueOnAxis("nCmdData", motorHomeProc);
-  if (status == asynSuccess) status = sendVelocityAndAccelExecute(maxVelocity, acceleration);
-
+  /* Use JVEL as velocity towards the home sensor, in EGU */
+  if (status == asynSuccess) status = setADRValueOnAxis(501, 0x4000, 0x6,
+                                                        homeVeloTowardsHomeSensor);
+  /* Use HVEL as velocity off the home sensor, in steps/sec */
+  if (status == asynSuccess) status = setADRValueOnAxis(501, 0x4000, 0x7,
+                                                        maxVelocity * drvlocal.mres);
+  if (status == asynSuccess) status = setValueOnAxis("bExecute", 1);
+  drvlocal.waitNumPollsBeforeReady += 2;
   return status;
 }
 
@@ -884,6 +893,11 @@ asynStatus TwinCATmotorAxis::setDoubleParam(int function, double value)
   } else if (function == pC_->motorRecOffset_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
                   "setDoubleParam(motorRecOffset_)=%f\n", value);
+#endif
+#ifdef HOME_VEL_TOString
+  } else if (function == pC_->TwinCATmotorHOME_VEL_TO_) {
+      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+                  "setDoubleParam(TwinCATmotorHOME_VEL_TO_)=%f\n", value);
 #endif
   }
 
