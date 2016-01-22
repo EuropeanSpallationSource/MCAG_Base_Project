@@ -19,6 +19,8 @@ typedef struct
   double position;
   double velocity;
   double acceleration;
+  double homeVeloTowardsHomeSensor;
+  double homeVeloFromHomeSensor;
   unsigned nErrorId;
 } cmd_Motor_cmd_type;
 
@@ -127,6 +129,17 @@ static int motorHandleADS_ADR_putFloat(unsigned adsport,
     }
     if (indexOffset == 0xE) {
       setHighSoftLimitPos(motor_axis_no, fValue);
+      return 0;
+    }
+  }
+  if (indexGroup >= 0x4000 && indexGroup < 0x5000) {
+    int motor_axis_no = (int)indexGroup - 0x4000;
+    if (indexOffset == 0x6) {
+      cmd_Motor_cmd[motor_axis_no].homeVeloTowardsHomeSensor = fValue;
+      return 0;
+    }
+    if (indexOffset == 0x7) {
+      cmd_Motor_cmd[motor_axis_no].homeVeloFromHomeSensor = fValue;
       return 0;
     }
   }
@@ -435,6 +448,15 @@ static void motorHandleOneArg(const char *myarg_1)
     cmd_buf_printf("OK");
     return;
   }
+  /* fHomePosition */
+  nvals = sscanf(myarg_1, "fHomePosition=%lf", &fValue);
+  if (nvals == 1) {
+    /* Do noting */
+    cmd_buf_printf("OK");
+    return;
+  }
+
+
   /* fVelocity=20 */
   nvals = sscanf(myarg_1, "fVelocity=%lf", &fValue);
   if (nvals == 1) {
@@ -499,12 +521,20 @@ static void motorHandleOneArg(const char *myarg_1)
           break;
         case 10:
         {
-          (void)moveHomeProc(motor_axis_no,
-                         0, /* direction, */
-                         cmd_Motor_cmd[motor_axis_no].nCmdData,
-                         cmd_Motor_cmd[motor_axis_no].velocity,
-                         cmd_Motor_cmd[motor_axis_no].acceleration);
-          cmd_buf_printf("OK");
+          if (cmd_Motor_cmd[motor_axis_no].homeVeloTowardsHomeSensor &&
+              cmd_Motor_cmd[motor_axis_no].homeVeloFromHomeSensor) {
+            (void)moveHomeProc(motor_axis_no,
+                               0, /* direction, */
+                               cmd_Motor_cmd[motor_axis_no].nCmdData,
+                               cmd_Motor_cmd[motor_axis_no].homeVeloTowardsHomeSensor,
+                               cmd_Motor_cmd[motor_axis_no].acceleration);
+            cmd_buf_printf("OK");
+          } else {
+            cmd_buf_printf("Error : %d %f %f",
+                           70000,
+                           cmd_Motor_cmd[motor_axis_no].homeVeloTowardsHomeSensor,
+                           cmd_Motor_cmd[motor_axis_no].homeVeloFromHomeSensor);
+          }
         }
         break;
         default:
