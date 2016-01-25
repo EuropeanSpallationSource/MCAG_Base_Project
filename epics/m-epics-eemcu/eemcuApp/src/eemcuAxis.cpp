@@ -753,12 +753,12 @@ asynStatus eemcuAxis::setIntegerParam(int function, int value)
 #ifdef motorRecDirectionString
   } else if (function == pC_->motorRecDirection_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setIntegerParam(motorRecDirection_)=%d\n", value);
+                  "setIntegerParam(%d motorRecDirection_)=%d\n", axisNo_, value);
 #endif
 #ifdef eemcuProcHomString
   } else if (function == pC_->eemcuHomeProc_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setIntegerParam(eemcuHomeProc_)=%d\n", value);
+                  "setIntegerParam(%d TwinCATmotorHomeProc_)=%d\n", axisNo_, value);
 #endif
   }
 
@@ -779,14 +779,14 @@ asynStatus eemcuAxis::setDoubleParam(int function, double value)
   asynStatus status;
   if (function == pC_->motorHighLimit_) {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-              "setDoubleParam(motorHighLimit_)=%f\n", value);
+              "setDoubleParam(%d motorHighLimit_)=%f\n", axisNo_, value);
     drvlocal.motorHighLimit = value;
     drvlocal.defined.motorHighLimit = 1;
     drvlocal.dirty.motorLimits = 1;
     setMotorLimitsOnAxisIfDefined();
   } else if (function == pC_->motorLowLimit_) {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-              "setDoubleParam(motorLowLimit_)=%f\n", value);
+              "setDoubleParam(%d motorLowLimit_)=%f\n", axisNo_, value);
     drvlocal.motorLowLimit = value;
     drvlocal.defined.motorLowLimit = 1;
     drvlocal.dirty.motorLimits = 1;
@@ -794,7 +794,7 @@ asynStatus eemcuAxis::setDoubleParam(int function, double value)
 #ifdef motorRecResolutionString
   } else if (function == pC_->motorRecResolution_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorRecResolution_=%f\n", value);
+                  "setDoubleParam(%d motorRecResolution_=%f\n", axisNo_, value);
       drvlocal.mres = value;
       setMotorLimitsOnAxisIfDefined();
 #endif
@@ -802,102 +802,102 @@ asynStatus eemcuAxis::setDoubleParam(int function, double value)
 
   if (function == pC_->motorMoveRel_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorMoveRel_)=%f\n", value);
+                  "setDoubleParam(%d motorMoveRel_)=%f\n", axisNo_, value);
   } else if (function == pC_->motorMoveAbs_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorMoveAbs_)=%f\n", value);
+                  "setDoubleParam(%d motorMoveAbs_)=%f\n", axisNo_, value);
   } else if (function == pC_->motorMoveVel_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorMoveVel_)=%f\n", value);
+                  "setDoubleParam(%d motorMoveVel_)=%f\n", axisNo_, value);
   } else if (function == pC_->motorHome_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParmotorHome__)=%f\n", value);
+                  "setDoubleParam(%d motorHome__)=%f\n", axisNo_, value);
   } else if (function == pC_->motorStop_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParmotorStop_)=%f\n", value);
+                  "setDoubleParam(%d motorStop_)=%f\n", axisNo_, value);
   } else if (function == pC_->motorVelocity_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorVelocity_=%f\n", value);
+                  "setDoubleParam(%d motorVelocity_=%f\n", axisNo_, value);
   } else if (function == pC_->motorVelBase_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorVelBase_)=%f\n", value);
+                  "setDoubleParam(%d motorVelBase_)=%f\n", axisNo_, value);
   } else if (function == pC_->motorAccel_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParamotorAccel_)=%f\n", value);
+                  "setDoubleParam(%d motorAccel_)=%f\n", axisNo_, value);
 #if 0
   } else if (function == pC_->motorPosition_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(mmotorPosition_=%f\n", value);
+                  "setDoubleParam(%d motorPosition_=%f\n", axisNo_, value);
   } else if (function == pC_->motorEncoderPosition_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorMovmotorEncoderPosition_=%f\n", value);
+                  "setDoubleParam(%d motorEncoderPosition_=%f\n", axisNo_, value);
 #endif
   } else if (function == pC_->motorDeferMoves_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motmotorDeferMoves_=%f\n", value);
+                  "setDoubleParam(%d motmotorDeferMoves_=%f\n", axisNo_, value);
   } else if (function == pC_->motorMoveToHome_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motmotorMoveToHome_=%f\n", value);
+                  "setDoubleParam(%d motmotorMoveToHome_=%f\n", axisNo_, value);
   } else if (function == pC_->motorResolution_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorResolution_=%f\n", value);
+                  "setDoubleParam(%d motorResolution_=%f\n", axisNo_, value);
   } else if (function == pC_->motorEncoderRatio_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorEncoderRatio_)=%f\n", value);
+                  "setDoubleParam(%d motorEncoderRatio_)=%f\n", axisNo_, value);
   } else if (function == pC_->motorPGain_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoublmotorPGain_oveRel_)=%f\n", value);
+                  "setDoubleParam(%d motorPGain_oveRel_)=%f\n", axisNo_, value);
   } else if (function == pC_->motorIGain_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoublmotorIGain_oveRel_)=%f\n", value);
+                  "setDoubleParam(%d motorIGain_oveRel_)=%f\n", axisNo_, value);
   } else if (function == pC_->motorDGain_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoublmotorDGain_oveRel_)=%f\n", value);
+                  "setDoublmotor(%d motorDGain_oveRel_)=%f\n", axisNo_, value);
       /* Limits handled above */
   } else if (function == pC_->motorClosedLoop_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParamotorClosedLoop_l_)=%f\n", value);
+                  "setDoubleParam(%d motorClosedLoop_l_)=%f\n", axisNo_, value);
 
 #ifdef motorPowerAutoOnOffString
   } else if (function == pC_->motorPowerAutoOnOff_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(momotorPowerAutoOnOff_%f\n", value);
+                  "setDoubleParam(%d motorPowerAutoOnOff_%f\n", axisNo_, value);
 #endif
 #ifdef motorPowerOnDelayString
   } else if (function == pC_->motorPowerOnDelay_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorPowerOnDelay_)=%f\n", value);
+                  "setDoubleParam(%d motorPowerOnDelay_)=%f\n", axisNo_, value);
 #endif
 #ifdef motorPowerOffDelayString
   } else if (function == pC_->motorPowerOffDelay_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(mmotorPowerOffDelay_=%f\n", value);
+                  "setDoubleParam(%d motorPowerOffDelay_=%f\n", axisNo_, value);
 #endif
 #ifdef motorPowerOffFractionString
   } else if (function == pC_->motorPowerOffFraction_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motomotorPowerOffFraction_=%f\n", value);
+                  "setDoubleParam(%d motomotorPowerOffFraction_=%f\n", axisNo_, value);
 #endif
 #ifdef motorPostMoveDelayString
   } else if (function == pC_->motorPostMoveDelay_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(mmotorPostMoveDelay_=%f\n", value);
+                  "setDoubleParam(%d motorPostMoveDelay_=%f\n", axisNo_, value);
 #endif
   } else if (function == pC_->motorStatus_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoublemotorStatus_veRel_)=%f\n", value);
+                  "setDoubleParam(%d motorStatus_)=%f\n", axisNo_, value);
   } else if (function == pC_->motorUpdateStatus_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorUpdateStatus_)=%f\n", value);
+                  "setDoubleParam(%d motorUpdateStatus_)=%f\n", axisNo_, value);
 #ifdef motorRecOffsetString
   } else if (function == pC_->motorRecOffset_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorRecOffset_)=%f\n", value);
+                  "setDoubleParam(%d motorRecOffset_)=%f\n", axisNo_, value);
 #endif
 #ifdef eemcuJVELString
   } else if (function == pC_->eemcuJVEL_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(eemcuJVEL_)=%f\n", value);
+                  "setDoubleParam(%d eemcuJVEL_)=%f\n", axisNo_, value);
 #endif
   }
 
