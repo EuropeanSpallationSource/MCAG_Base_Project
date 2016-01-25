@@ -402,7 +402,7 @@ asynStatus eemcuAxis::home(double minVelocity, double maxVelocity, double accele
                                                           pC_->eemcuJVEL_,
                                                           &homeVeloTowardsHomeSensor);
   if (status == asynSuccess) status = pC_->getIntegerParam(axisNo_,
-                                                           pC_->eemcuHomeProc_,
+                                                           pC_->eemcuProcHom_,
                                                            &motorHomeProc);
   asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
             "home() motorHomeProc=%d homeVeloTowardsHomeSensor=%f status=%s (%d)\n",
@@ -756,9 +756,14 @@ asynStatus eemcuAxis::setIntegerParam(int function, int value)
               "setIntegerParam(%d motorRecDirection_)=%d\n", axisNo_, value);
 #endif
 #ifdef eemcuProcHomString
-  } else if (function == pC_->eemcuHomeProc_) {
+  } else if (function == pC_->eemcuProcHom_) {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-              "setIntegerParam(%d TwinCATmotorHomeProc_)=%d\n", axisNo_, value);
+              "setIntegerParam(%d TwinCATmotorProcHom_)=%d\n", axisNo_, value);
+#endif
+#ifdef eemcuErrRstString
+  } else if (function == pC_->eemcuErrRst_) {
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setIntegerParam(%d TwinCATmotorErrRst_)=%d\n", axisNo_, value);
 #endif
   }
 

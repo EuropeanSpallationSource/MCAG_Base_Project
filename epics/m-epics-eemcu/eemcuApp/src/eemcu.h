@@ -19,6 +19,7 @@ FILENAME...   eemcu.h
 #define eemcuErrString                  "Err"
 #define eemcuErrIdString                "ErrId"
 #define eemcuProcHomString              "ProcHom"
+#define eemcuErrRstString               "ErrRst"
 #define eemcuJVELString                 "JVEL_"
 
 extern "C" {
@@ -152,7 +153,7 @@ public:
 
   /* First parameter */
   int eemcuErr_;
-  int eemcuHomeProc_;
+  int eemcuProcHom_;
 
 #ifdef CREATE_MOTOR_REC_RESOLUTION
   int motorRecResolution_;
@@ -162,6 +163,7 @@ public:
 
   /* Add parameters here */
 
+  int eemcuErrRst_;
   int eemcuJVEL_;
   int eemcuErrId_;
   /* Last parameter */
