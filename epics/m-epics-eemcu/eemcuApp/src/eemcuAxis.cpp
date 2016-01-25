@@ -337,8 +337,6 @@ asynStatus eemcuAxis::getValueFromController(const char* var, double *value)
 asynStatus eemcuAxis::sendVelocityAndAccelExecute(double maxVelocity, double acceleration_time)
 {
   asynStatus status;
-  status = resetAxis();
-  if (status) return status;
   /* We don't use minVelocity */
   double maxVelocityEGU = maxVelocity * drvlocal.mres;
   if (!drvlocal.mres) {
@@ -515,7 +513,7 @@ asynStatus eemcuAxis::resetAxis(void)
   asynStatus status;
   status = pC_->getIntegerParam(axisNo_, pC_->eemcuErr_, &Err);
   if (Err) {
-    status = setValueOnAxis("bEnable", 0);
+    status = setValueOnAxis("bExecute", 0);
     if (status) goto resetAxisReturn;
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
               "bReset=1(%d)\n",  axisNo_);
@@ -540,7 +538,6 @@ asynStatus eemcuAxis::resetAxis(void)
 asynStatus eemcuAxis::enableAmplifier(int on)
 {
   asynStatus status = asynSuccess;
-  if (on) status = resetAxis();
   if (status) return status;
   return setValueOnAxisVerify("bEnable", "bEnabled", on ? 1 : 0, 100);
 }
@@ -764,6 +761,8 @@ asynStatus eemcuAxis::setIntegerParam(int function, int value)
   } else if (function == pC_->eemcuErrRst_) {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
               "setIntegerParam(%d TwinCATmotorErrRst_)=%d\n", axisNo_, value);
+    status = resetAxis();
+    return status;
 #endif
   }
 

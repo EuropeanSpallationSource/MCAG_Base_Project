@@ -63,6 +63,7 @@ class Test(unittest.TestCase):
     pvm1 = epics.PV(os.getenv("TESTEDMOTORAXIS"))
     pv_Err   = epics.PV(os.getenv("TESTEDMOTORAXIS") + "-Err")
     pv_nErrorId = epics.PV(os.getenv("TESTEDMOTORAXIS") + "-ErrId")
+    pv_nErrRst = epics.PV(os.getenv("TESTEDMOTORAXIS") + "-ErrRst")
     pv_MSTA = epics.PV(os.getenv("TESTEDMOTORAXIS") + ".MSTA")
     
     
@@ -117,8 +118,7 @@ class Test(unittest.TestCase):
         self.assertNotEqual(0, bError,   'bError')
         self.assertNotEqual(0, nErrorId, 'nErrorId')
         
-        self.motm1.put('STOP', 1)
-        self.motm1.put('CNEN', 1)
+        self.pv_nErrRst.put(1)
 
         msta = int(self.pv_MSTA.get(use_monitor=False))
         bError   = self.pv_Err.get(use_monitor=False)
