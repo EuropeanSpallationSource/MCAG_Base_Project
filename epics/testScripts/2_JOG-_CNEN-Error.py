@@ -61,8 +61,8 @@ class Test(unittest.TestCase):
 
     motm1   = epics.Motor(os.getenv("TESTEDMOTORAXIS"))
     pvm1 = epics.PV(os.getenv("TESTEDMOTORAXIS"))
-    pv_bError   = epics.PV(os.getenv("TESTEDMOTORAXIS") + "-BERROR")
-    pv_nErrorId = epics.PV(os.getenv("TESTEDMOTORAXIS") + "-NERRORID")
+    pv_Err   = epics.PV(os.getenv("TESTEDMOTORAXIS") + "-Err")
+    pv_nErrorId = epics.PV(os.getenv("TESTEDMOTORAXIS") + "-ErrId")
     pv_MSTA = epics.PV(os.getenv("TESTEDMOTORAXIS") + ".MSTA")
     
     
@@ -110,7 +110,7 @@ class Test(unittest.TestCase):
         self.assertNotEqual(0, msta & self.MSTA_BIT_FOLLOW_ERR, 'Error MSTA.Following Error)')
         self.assertEqual(0, msta & self.MSTA_BIT_MOVING,     'Error MSTA.Moving)')
 
-        bError   = self.pv_bError.get(use_monitor=False)
+        bError   = self.pv_Err.get(use_monitor=False)
         nErrorId = self.pv_nErrorId.get(use_monitor=False)
         print '%s Error bError=%d nErrorId=%d' % (tc_no, bError, nErrorId)
 
@@ -121,7 +121,7 @@ class Test(unittest.TestCase):
         self.motm1.put('CNEN', 1)
 
         msta = int(self.pv_MSTA.get(use_monitor=False))
-        bError   = self.pv_bError.get(use_monitor=False)
+        bError   = self.pv_Err.get(use_monitor=False)
         nErrorId = self.pv_nErrorId.get(use_monitor=False)
         print '%s Clean MSTA_BIT_PROBLEM=%x msta=%x bError=%d nErrorId=%d' % (tc_no, self.MSTA_BIT_PROBLEM, msta, bError, nErrorId)
 
@@ -130,7 +130,7 @@ class Test(unittest.TestCase):
             time.sleep(polltime)
             print '%s sleep counter = %d' % (tc_no, counter)
             msta = int(self.pv_MSTA.get(use_monitor=False))
-            bError   = self.pv_bError.get(use_monitor=False)
+            bError   = self.pv_Err.get(use_monitor=False)
             nErrorId = self.pv_nErrorId.get(use_monitor=False)
             counter = counter - 1
             if counter == 0:

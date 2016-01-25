@@ -16,9 +16,9 @@ FILENAME...   TwinCATmotor.h
 #define motorRecResolutionString        "MOTOR_REC_RESOLUTION"
 #endif
 
-#define BERRORString                    "BERROR"
-#define NERRORIDString                  "NERRORID"
-#define HOME_PROCString                 "HOME_PROC"
+#define TwinCATmotorErrString           "Err"
+#define TwinCATmotorErrIdString         "ErrId"
+#define TwinCATmotorProcHomString       "ProcHom"
 #define HOME_VEL_TOString               "HVEL_TO"
 
 extern "C" {
@@ -151,7 +151,7 @@ public:
   asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
 
   /* First parameter */
-  int TwinCATmotorBError_;
+  int TwinCATmotorErr_;
   int TwinCATmotorHomeProc_;
 
 #ifdef CREATE_MOTOR_REC_RESOLUTION
@@ -163,11 +163,11 @@ public:
   /* Add parameters here */
 
   int TwinCATmotorHOME_VEL_TO_;
-  int TwinCATmotorNErrorId_;
+  int TwinCATmotorErrId_;
   /* Last parameter */
 
-  #define FIRST_VIRTUAL_PARAM TwinCATmotorBError_
-  #define LAST_VIRTUAL_PARAM TwinCATmotorNErrorId_
+  #define FIRST_VIRTUAL_PARAM TwinCATmotorErr_
+  #define LAST_VIRTUAL_PARAM TwinCATmotorErrId_
   #define NUM_VIRTUAL_MOTOR_PARAMS ((int) (&LAST_VIRTUAL_PARAM - &FIRST_VIRTUAL_PARAM + 1))
 
   friend class TwinCATmotorAxis;

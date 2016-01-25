@@ -511,10 +511,10 @@ asynStatus TwinCATmotorAxis::updateSoftLimitsIfDirty(int line)
 
 asynStatus TwinCATmotorAxis::resetAxis(void)
 {
-  int bError = 0;
+  int Err = 0;
   asynStatus status;
-  status = pC_->getIntegerParam(axisNo_, pC_->TwinCATmotorBError_, &bError);
-  if (bError) {
+  status = pC_->getIntegerParam(axisNo_, pC_->TwinCATmotorErr_, &Err);
+  if (Err) {
     status = setValueOnAxis("bEnable", 0);
     if (status) goto resetAxisReturn;
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
@@ -671,8 +671,8 @@ asynStatus TwinCATmotorAxis::poll(bool *moving)
   setIntegerParam(pC_->motorStatusLowLimit_, !st_axis_status.bLimitBwd);
   setIntegerParam(pC_->motorStatusHighLimit_, !st_axis_status.bLimitFwd);
   setIntegerParam(pC_->motorStatusPowerOn_, st_axis_status.bEnabled);
-  setIntegerParam(pC_->TwinCATmotorBError_, st_axis_status.bError);
-  setIntegerParam(pC_->TwinCATmotorNErrorId_, st_axis_status.nErrorId);
+  setIntegerParam(pC_->TwinCATmotorErr_, st_axis_status.bError);
+  setIntegerParam(pC_->TwinCATmotorErrId_, st_axis_status.nErrorId);
 
   /* Use previous fActPosition and current fActPosition to calculate direction.*/
   if (st_axis_status.fActPosition > drvlocal.oldPosition) {
@@ -713,7 +713,7 @@ asynStatus TwinCATmotorAxis::poll(bool *moving)
   if (drvlocal.old_bError != st_axis_status.bError ||
       drvlocal.old_nErrorId != st_axis_status.nErrorId) {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-              "poll(%d) bError=%d st_axis_status.nErrorId=%d\n",
+              "poll(%d) Err=%d st_axis_status.nErrorId=%d\n",
               axisNo_, st_axis_status.bError, st_axis_status.nErrorId);
     drvlocal.old_bError = st_axis_status.bError;
     drvlocal.old_nErrorId = st_axis_status.nErrorId;
@@ -755,7 +755,7 @@ asynStatus TwinCATmotorAxis::setIntegerParam(int function, int value)
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
                   "setIntegerParam(motorRecDirection_)=%d\n", value);
 #endif
-#ifdef HOME_PROCString
+#ifdef TwinCATmotorProcHomString
   } else if (function == pC_->TwinCATmotorHomeProc_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
                   "setIntegerParam(TwinCATmotorHomeProc_)=%d\n", value);

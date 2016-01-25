@@ -36,11 +36,11 @@ TwinCATmotorController::TwinCATmotorController(const char *portName, const char 
 {
   asynStatus status;
 
-  createParam(BERRORString,                    asynParamInt32,       &TwinCATmotorBError_);
-  createParam(NERRORIDString,                  asynParamInt32,       &TwinCATmotorNErrorId_);
+  createParam(TwinCATmotorErrString,           asynParamInt32,       &TwinCATmotorErr_);
+  createParam(TwinCATmotorErrIdString,         asynParamInt32,       &TwinCATmotorErrId_);
 
-  createParam(HOME_PROCString,                   asynParamInt32,     &TwinCATmotorHomeProc_);
-  createParam(HOME_VEL_TOString,                 asynParamFloat64,   &TwinCATmotorHOME_VEL_TO_);
+  createParam(TwinCATmotorProcHomString,       asynParamInt32,       &TwinCATmotorHomeProc_);
+  createParam(HOME_VEL_TOString,               asynParamFloat64,     &TwinCATmotorHOME_VEL_TO_);
 
 #ifdef CREATE_MOTOR_REC_RESOLUTION
   /* Latest asynMotorController does this, but not the version in 6.81 (or 6.9x) */
