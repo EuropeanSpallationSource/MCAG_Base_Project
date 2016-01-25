@@ -1,5 +1,5 @@
 /*
-FILENAME... TwinCATmotorController.cpp
+FILENAME... eemcuController.cpp
 */
 
 #include <stdio.h>
@@ -16,16 +16,16 @@ FILENAME... TwinCATmotorController.cpp
 #include "asynMotorAxis.h"
 
 #include <epicsExport.h>
-#include "TwinCATmotor.h"
+#include "eemcu.h"
 
-/** Creates a new TwinCATmotorController object.
+/** Creates a new eemcuController object.
   * \param[in] portName          The name of the asyn port that will be created for this driver
-  * \param[in] MotorPortName     The name of the drvAsynSerialPort that was created previously to connect to the TwinCATmotor controller
+  * \param[in] MotorPortName     The name of the drvAsynSerialPort that was created previously to connect to the eemcu controller
   * \param[in] numAxes           The number of axes that this controller supports
   * \param[in] movingPollPeriod  The time between polls when any axis is moving
   * \param[in] idlePollPeriod    The time between polls when no axis is moving
   */
-TwinCATmotorController::TwinCATmotorController(const char *portName, const char *MotorPortName, int numAxes,
+eemcuController::eemcuController(const char *portName, const char *MotorPortName, int numAxes,
                                                double movingPollPeriod,double idlePollPeriod)
   :  asynMotorController(portName, numAxes, NUM_VIRTUAL_MOTOR_PARAMS,
                          0, // No additional interfaces beyond those in base class
@@ -36,11 +36,11 @@ TwinCATmotorController::TwinCATmotorController(const char *portName, const char 
 {
   asynStatus status;
 
-  createParam(TwinCATmotorErrString,           asynParamInt32,       &TwinCATmotorErr_);
-  createParam(TwinCATmotorErrIdString,         asynParamInt32,       &TwinCATmotorErrId_);
+  createParam(eemcuErrString,           asynParamInt32,       &eemcuErr_);
+  createParam(eemcuErrIdString,         asynParamInt32,       &eemcuErrId_);
 
-  createParam(TwinCATmotorProcHomString,       asynParamInt32,       &TwinCATmotorHomeProc_);
-  createParam(HOME_VEL_TOString,               asynParamFloat64,     &TwinCATmotorHOME_VEL_TO_);
+  createParam(eemcuProcHomString,       asynParamInt32,       &eemcuHomeProc_);
+  createParam(eemcuJVELString,               asynParamFloat64,     &eemcuJVEL_);
 
 #ifdef CREATE_MOTOR_REC_RESOLUTION
   /* Latest asynMotorController does this, but not the version in 6.81 (or 6.9x) */
@@ -49,7 +49,7 @@ TwinCATmotorController::TwinCATmotorController(const char *portName, const char 
   createParam(motorRecOffsetString,            asynParamFloat64,      &motorRecOffset_);
 #endif
 
-  /* Connect to TwinCATmotor controller */
+  /* Connect to eemcu controller */
   status = pasynOctetSyncIO->connect(MotorPortName, 0, &pasynUserController_, NULL);
   if (status) {
     asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
@@ -59,25 +59,25 @@ TwinCATmotorController::TwinCATmotorController(const char *portName, const char 
 }
 
 
-/** Creates a new TwinCATmotorController object.
+/** Creates a new eemcuController object.
   * Configuration command, called directly or from iocsh
   * \param[in] portName          The name of the asyn port that will be created for this driver
-  * \param[in] MotorPortName  The name of the drvAsynIPPPort that was created previously to connect to the TwinCATmotor controller
+  * \param[in] MotorPortName  The name of the drvAsynIPPPort that was created previously to connect to the eemcu controller
   * \param[in] numAxes           The number of axes that this controller supports (0 is not used)
   * \param[in] movingPollPeriod  The time in ms between polls when any axis is moving
   * \param[in] idlePollPeriod    The time in ms between polls when no axis is moving
   */
-extern "C" int TwinCATmotorCreateController(const char *portName, const char *MotorPortName, int numAxes,
+extern "C" int eemcuCreateController(const char *portName, const char *MotorPortName, int numAxes,
                                             int movingPollPeriod, int idlePollPeriod)
 {
-  new TwinCATmotorController(portName, MotorPortName, 1+numAxes, movingPollPeriod/1000., idlePollPeriod/1000.);
+  new eemcuController(portName, MotorPortName, 1+numAxes, movingPollPeriod/1000., idlePollPeriod/1000.);
   return(asynSuccess);
 }
 
 /** Writes a string to the controller and reads a response.
   * Disconnects in case of error
   */
-asynStatus TwinCATmotorController::writeReadOnErrorDisconnect(void)
+asynStatus eemcuController::writeReadOnErrorDisconnect(void)
 {
   size_t nwrite = 0;
   asynStatus status;
@@ -117,11 +117,11 @@ asynStatus TwinCATmotorController::writeReadOnErrorDisconnect(void)
   return status;
 }
 
-void TwinCATmotorController::handleStatusChange(asynStatus status)
+void eemcuController::handleStatusChange(asynStatus status)
 {
   int i;
   for (i=0; i<numAxes_; i++) {
-    TwinCATmotorAxis *pAxis=getAxis(i);
+    eemcuAxis *pAxis=getAxis(i);
     if (!pAxis) continue;
     pAxis->handleStatusChange(status);
   }
@@ -134,7 +134,7 @@ void TwinCATmotorController::handleStatusChange(asynStatus status)
   * If details > 0 then information is printed about each axis.
   * After printing controller-specific information it calls asynMotorController::report()
   */
-void TwinCATmotorController::report(FILE *fp, int level)
+void eemcuController::report(FILE *fp, int level)
 {
   fprintf(fp, "Twincat motor driver %s, numAxes=%d, moving poll period=%f, idle poll period=%f\n",
     this->portName, numAxes_, movingPollPeriod_, idlePollPeriod_);
@@ -143,27 +143,27 @@ void TwinCATmotorController::report(FILE *fp, int level)
   asynMotorController::report(fp, level);
 }
 
-/** Returns a pointer to an TwinCATmotorAxis object.
+/** Returns a pointer to an eemcuAxis object.
   * Returns NULL if the axis number encoded in pasynUser is invalid.
   * \param[in] pasynUser asynUser structure that encodes the axis index number. */
-TwinCATmotorAxis* TwinCATmotorController::getAxis(asynUser *pasynUser)
+eemcuAxis* eemcuController::getAxis(asynUser *pasynUser)
 {
-  return static_cast<TwinCATmotorAxis*>(asynMotorController::getAxis(pasynUser));
+  return static_cast<eemcuAxis*>(asynMotorController::getAxis(pasynUser));
 }
 
-/** Returns a pointer to an TwinCATmotorAxis object.
+/** Returns a pointer to an eemcuAxis object.
   * Returns NULL if the axis number encoded in pasynUser is invalid.
   * \param[in] axisNo Axis index number. */
-TwinCATmotorAxis* TwinCATmotorController::getAxis(int axisNo)
+eemcuAxis* eemcuController::getAxis(int axisNo)
 {
-  return static_cast<TwinCATmotorAxis*>(asynMotorController::getAxis(axisNo));
+  return static_cast<eemcuAxis*>(asynMotorController::getAxis(axisNo));
 }
 
 
-asynStatus TwinCATmotorController::writeInt32(asynUser *pasynUser, epicsInt32 value)
+asynStatus eemcuController::writeInt32(asynUser *pasynUser, epicsInt32 value)
 {
   int function = pasynUser->reason;
-  TwinCATmotorAxis *pAxis;
+  eemcuAxis *pAxis;
   pAxis = getAxis(pasynUser);
   if (!pAxis) return asynError;
 
@@ -172,44 +172,44 @@ asynStatus TwinCATmotorController::writeInt32(asynUser *pasynUser, epicsInt32 va
 }
 
 /** Code for iocsh registration */
-static const iocshArg TwinCATmotorCreateControllerArg0 = {"Port name", iocshArgString};
-static const iocshArg TwinCATmotorCreateControllerArg1 = {"EPICS ASYN TCP motor port name", iocshArgString};
-static const iocshArg TwinCATmotorCreateControllerArg2 = {"Number of axes", iocshArgInt};
-static const iocshArg TwinCATmotorCreateControllerArg3 = {"Moving poll period (ms)", iocshArgInt};
-static const iocshArg TwinCATmotorCreateControllerArg4 = {"Idle poll period (ms)", iocshArgInt};
-static const iocshArg * const TwinCATmotorCreateControllerArgs[] = {&TwinCATmotorCreateControllerArg0,
-                                                             &TwinCATmotorCreateControllerArg1,
-                                                             &TwinCATmotorCreateControllerArg2,
-                                                             &TwinCATmotorCreateControllerArg3,
-                                                             &TwinCATmotorCreateControllerArg4};
-static const iocshFuncDef TwinCATmotorCreateControllerDef = {"TwinCATmotorCreateController", 5, TwinCATmotorCreateControllerArgs};
-static void TwinCATmotorCreateContollerCallFunc(const iocshArgBuf *args)
+static const iocshArg eemcuCreateControllerArg0 = {"Port name", iocshArgString};
+static const iocshArg eemcuCreateControllerArg1 = {"EPICS ASYN TCP motor port name", iocshArgString};
+static const iocshArg eemcuCreateControllerArg2 = {"Number of axes", iocshArgInt};
+static const iocshArg eemcuCreateControllerArg3 = {"Moving poll period (ms)", iocshArgInt};
+static const iocshArg eemcuCreateControllerArg4 = {"Idle poll period (ms)", iocshArgInt};
+static const iocshArg * const eemcuCreateControllerArgs[] = {&eemcuCreateControllerArg0,
+                                                             &eemcuCreateControllerArg1,
+                                                             &eemcuCreateControllerArg2,
+                                                             &eemcuCreateControllerArg3,
+                                                             &eemcuCreateControllerArg4};
+static const iocshFuncDef eemcuCreateControllerDef = {"eemcuCreateController", 5, eemcuCreateControllerArgs};
+static void eemcuCreateContollerCallFunc(const iocshArgBuf *args)
 {
-  TwinCATmotorCreateController(args[0].sval, args[1].sval, args[2].ival, args[3].ival, args[4].ival);
+  eemcuCreateController(args[0].sval, args[1].sval, args[2].ival, args[3].ival, args[4].ival);
 }
 
 
-/* TwinCATmotorCreateAxis */
-static const iocshArg TwinCATmotorCreateAxisArg0 = {"Controller port name", iocshArgString};
-static const iocshArg TwinCATmotorCreateAxisArg1 = {"Axis number", iocshArgInt};
-static const iocshArg TwinCATmotorCreateAxisArg2 = {"axisFlags", iocshArgInt};
-static const iocshArg TwinCATmotorCreateAxisArg3 = {"axisOptionsStr", iocshArgString};
-static const iocshArg * const TwinCATmotorCreateAxisArgs[] = {&TwinCATmotorCreateAxisArg0,
-							      &TwinCATmotorCreateAxisArg1,
-							      &TwinCATmotorCreateAxisArg2,
-							      &TwinCATmotorCreateAxisArg3};
-static const iocshFuncDef TwinCATmotorCreateAxisDef = {"TwinCATmotorCreateAxis", 4, TwinCATmotorCreateAxisArgs};
-static void TwinCATmotorCreateAxisCallFunc(const iocshArgBuf *args)
+/* eemcuCreateAxis */
+static const iocshArg eemcuCreateAxisArg0 = {"Controller port name", iocshArgString};
+static const iocshArg eemcuCreateAxisArg1 = {"Axis number", iocshArgInt};
+static const iocshArg eemcuCreateAxisArg2 = {"axisFlags", iocshArgInt};
+static const iocshArg eemcuCreateAxisArg3 = {"axisOptionsStr", iocshArgString};
+static const iocshArg * const eemcuCreateAxisArgs[] = {&eemcuCreateAxisArg0,
+							      &eemcuCreateAxisArg1,
+							      &eemcuCreateAxisArg2,
+							      &eemcuCreateAxisArg3};
+static const iocshFuncDef eemcuCreateAxisDef = {"eemcuCreateAxis", 4, eemcuCreateAxisArgs};
+static void eemcuCreateAxisCallFunc(const iocshArgBuf *args)
 {
-  TwinCATmotorCreateAxis(args[0].sval, args[1].ival, args[2].ival, args[3].sval);
+  eemcuCreateAxis(args[0].sval, args[1].ival, args[2].ival, args[3].sval);
 }
 
-static void TwinCATmotorControllerRegister(void)
+static void eemcuControllerRegister(void)
 {
-  iocshRegister(&TwinCATmotorCreateControllerDef, TwinCATmotorCreateContollerCallFunc);
-  iocshRegister(&TwinCATmotorCreateAxisDef,       TwinCATmotorCreateAxisCallFunc);
+  iocshRegister(&eemcuCreateControllerDef, eemcuCreateContollerCallFunc);
+  iocshRegister(&eemcuCreateAxisDef,       eemcuCreateAxisCallFunc);
 }
 
 extern "C" {
-  epicsExportRegistrar(TwinCATmotorControllerRegister);
+  epicsExportRegistrar(eemcuControllerRegister);
 }

@@ -1,5 +1,5 @@
 /*
-FILENAME... TwinCATmotorAxis.cpp
+FILENAME... eemcuAxis.cpp
 */
 
 #include <stdio.h>
@@ -8,24 +8,24 @@ FILENAME... TwinCATmotorAxis.cpp
 
 #include <epicsThread.h>
 
-#include "TwinCATmotor.h"
+#include "eemcu.h"
 
 #ifndef ASYN_TRACE_INFO
 #define ASYN_TRACE_INFO      0x0040
 #endif
 
 //
-// These are the TwinCATmotorAxis methods
+// These are the eemcuAxis methods
 //
 
-/** Creates a new TwinCATmotorAxis object.
-  * \param[in] pC Pointer to the TwinCATmotorController to which this axis belongs.
+/** Creates a new eemcuAxis object.
+  * \param[in] pC Pointer to the eemcuController to which this axis belongs.
   * \param[in] axisNo Index number of this axis, range 1 to pC->numAxes_. (0 is not used)
   *
   *
   * Initializes register numbers, etc.
   */
-TwinCATmotorAxis::TwinCATmotorAxis(TwinCATmotorController *pC, int axisNo,
+eemcuAxis::eemcuAxis(eemcuController *pC, int axisNo,
 				   int axisFlags, const char *axisOptionsStr)
   : asynMotorAxis(pC, axisNo),
     pC_(pC)
@@ -62,19 +62,19 @@ TwinCATmotorAxis::TwinCATmotorAxis(TwinCATmotorController *pC, int axisNo,
 }
 
 
-extern "C" int TwinCATmotorCreateAxis(const char *TwinCATmotorName, int axisNo,
+extern "C" int eemcuCreateAxis(const char *eemcuName, int axisNo,
 				      int axisFlags, const char *axisOptionsStr)
 {
-  TwinCATmotorController *pC;
+  eemcuController *pC;
 
-  pC = (TwinCATmotorController*) findAsynPortDriver(TwinCATmotorName);
+  pC = (eemcuController*) findAsynPortDriver(eemcuName);
   if (!pC)
   {
-    printf("Error port %s not found\n", TwinCATmotorName);
+    printf("Error port %s not found\n", eemcuName);
     return asynError;
   }
   pC->lock();
-  new TwinCATmotorAxis(pC, axisNo, axisFlags, axisOptionsStr);
+  new eemcuAxis(pC, axisNo, axisFlags, axisOptionsStr);
   pC->unlock();
   return asynSuccess;
 }
@@ -85,10 +85,10 @@ extern "C" int TwinCATmotorCreateAxis(const char *TwinCATmotorName, int axisNo,
   *
   * Sets the dirty bits
   */
-void TwinCATmotorAxis::handleStatusChange(asynStatus newStatus)
+void eemcuAxis::handleStatusChange(asynStatus newStatus)
 {
   asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
-            "TwinCATmotorAxis::handleStatusChange status=%s (%d)\n",
+            "eemcuAxis::handleStatusChange status=%s (%d)\n",
             pasynManager->strStatus(newStatus), (int)newStatus);
   if (newStatus != asynSuccess) {
     memset(&drvlocal.dirty, 0xFF, sizeof(drvlocal.dirty));
@@ -112,7 +112,7 @@ void TwinCATmotorAxis::handleStatusChange(asynStatus newStatus)
   *
   * After printing device-specific information calls asynMotorAxis::report()
   */
-void TwinCATmotorAxis::report(FILE *fp, int level)
+void eemcuAxis::report(FILE *fp, int level)
 {
   if (level > 0) {
     fprintf(fp, "  axis %d\n", axisNo_);
@@ -130,7 +130,7 @@ void TwinCATmotorAxis::report(FILE *fp, int level)
   *
   * When the communictaion fails ot times out, writeReadOnErrorDisconnect() is called
   */
-asynStatus TwinCATmotorAxis::writeReadACK(void)
+asynStatus eemcuAxis::writeReadACK(void)
 {
   asynStatus status = pC_->writeReadOnErrorDisconnect();
   switch (status) {
@@ -163,7 +163,7 @@ asynStatus TwinCATmotorAxis::writeReadACK(void)
   * \param[in] value the (integer) variable to be updated
   *
   */
-asynStatus TwinCATmotorAxis::setValueOnAxis(const char* var, int value)
+asynStatus eemcuAxis::setValueOnAxis(const char* var, int value)
 {
   sprintf(pC_->outString_, "Main.M%d.%s=%d", axisNo_, var, value);
   return writeReadACK();
@@ -176,7 +176,7 @@ asynStatus TwinCATmotorAxis::setValueOnAxis(const char* var, int value)
   * \param[in] value the (integer) variable to be updated
   * \param[in] number of retries
   */
-asynStatus TwinCATmotorAxis::setValueOnAxisVerify(const char *var, const char *rbvar,
+asynStatus eemcuAxis::setValueOnAxisVerify(const char *var, const char *rbvar,
                                                   int value, unsigned int retryCount)
 {
   asynStatus status = asynSuccess;
@@ -200,13 +200,13 @@ asynStatus TwinCATmotorAxis::setValueOnAxisVerify(const char *var, const char *r
   * \param[in] value the (floating point) variable to be updated
   *
   */
-asynStatus TwinCATmotorAxis::setValueOnAxis(const char* var, double value)
+asynStatus eemcuAxis::setValueOnAxis(const char* var, double value)
 {
   sprintf(pC_->outString_, "Main.M%d.%s=%f", axisNo_, var, value);
   return writeReadACK();
 }
 
-int TwinCATmotorAxis::getMotionAxisID(void)
+int eemcuAxis::getMotionAxisID(void)
 {
   int ret = drvlocal.dirty.nMotionAxisID;
   if (ret < 0) {
@@ -222,7 +222,7 @@ int TwinCATmotorAxis::getMotionAxisID(void)
   return ret;
 }
 
-asynStatus TwinCATmotorAxis::setADRValueOnAxis(unsigned adsport,
+asynStatus eemcuAxis::setADRValueOnAxis(unsigned adsport,
                                                unsigned indexGroup,
                                                unsigned indexOffset,
                                                int value)
@@ -234,7 +234,7 @@ asynStatus TwinCATmotorAxis::setADRValueOnAxis(unsigned adsport,
   return writeReadACK();
 }
 
-asynStatus TwinCATmotorAxis::setADRValueOnAxis(unsigned adsport,
+asynStatus eemcuAxis::setADRValueOnAxis(unsigned adsport,
                                                unsigned indexGroup,
                                                unsigned indexOffset,
                                                double value)
@@ -251,7 +251,7 @@ asynStatus TwinCATmotorAxis::setADRValueOnAxis(unsigned adsport,
   * \param[in] pointer to the integer result
   *
   */
-asynStatus TwinCATmotorAxis::getValueFromAxis(const char* var, int *value)
+asynStatus eemcuAxis::getValueFromAxis(const char* var, int *value)
 {
   asynStatus comStatus;
   int res;
@@ -289,7 +289,7 @@ asynStatus TwinCATmotorAxis::getValueFromAxis(const char* var, int *value)
   * \param[in] pointer to the double result
   *
   */
-asynStatus TwinCATmotorAxis::getValueFromAxis(const char* var, double *value)
+asynStatus eemcuAxis::getValueFromAxis(const char* var, double *value)
 {
   asynStatus comStatus;
   int nvals;
@@ -309,7 +309,7 @@ asynStatus TwinCATmotorAxis::getValueFromAxis(const char* var, double *value)
   return asynSuccess;
 }
 
-asynStatus TwinCATmotorAxis::getValueFromController(const char* var, double *value)
+asynStatus eemcuAxis::getValueFromController(const char* var, double *value)
 {
   asynStatus comStatus;
   int nvals;
@@ -334,7 +334,7 @@ asynStatus TwinCATmotorAxis::getValueFromController(const char* var, double *val
   * \param[in] acceleration ???
   *
   */
-asynStatus TwinCATmotorAxis::sendVelocityAndAccelExecute(double maxVelocity, double acceleration_time)
+asynStatus eemcuAxis::sendVelocityAndAccelExecute(double maxVelocity, double acceleration_time)
 {
   asynStatus status;
   status = resetAxis();
@@ -371,7 +371,7 @@ asynStatus TwinCATmotorAxis::sendVelocityAndAccelExecute(double maxVelocity, dou
   * \param[in] acceleration, seconds to maximum velocity
   *
   */
-asynStatus TwinCATmotorAxis::move(double position, int relative, double minVelocity, double maxVelocity, double acceleration)
+asynStatus eemcuAxis::move(double position, int relative, double minVelocity, double maxVelocity, double acceleration)
 {
   asynStatus status = asynSuccess;
 
@@ -392,17 +392,17 @@ asynStatus TwinCATmotorAxis::move(double position, int relative, double minVeloc
   * \param[in] forwards (0=backwards, otherwise forwards)
   *
   */
-asynStatus TwinCATmotorAxis::home(double minVelocity, double maxVelocity, double acceleration, int forwards)
+asynStatus eemcuAxis::home(double minVelocity, double maxVelocity, double acceleration, int forwards)
 {
   asynStatus status = asynSuccess;
   int motorHomeProc = -1;
   double homeVeloTowardsHomeSensor = 0;
                                                          
   if (status == asynSuccess) status = pC_->getDoubleParam(axisNo_,
-                                                          pC_->TwinCATmotorHOME_VEL_TO_,
+                                                          pC_->eemcuJVEL_,
                                                           &homeVeloTowardsHomeSensor);
   if (status == asynSuccess) status = pC_->getIntegerParam(axisNo_,
-                                                           pC_->TwinCATmotorHomeProc_,
+                                                           pC_->eemcuHomeProc_,
                                                            &motorHomeProc);
   asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
             "home() motorHomeProc=%d homeVeloTowardsHomeSensor=%f status=%s (%d)\n",
@@ -435,7 +435,7 @@ asynStatus TwinCATmotorAxis::home(double minVelocity, double maxVelocity, double
   * \param[in] acceleration, seconds to maximum velocity
   *
   */
-asynStatus TwinCATmotorAxis::moveVelocity(double minVelocity, double maxVelocity, double acceleration)
+asynStatus eemcuAxis::moveVelocity(double minVelocity, double maxVelocity, double acceleration)
 {
   asynStatus status = asynSuccess;
 
@@ -451,7 +451,7 @@ asynStatus TwinCATmotorAxis::moveVelocity(double minVelocity, double maxVelocity
 /** Set the high soft-limit on an axis
   *
   */
-asynStatus TwinCATmotorAxis::setMotorHighLimitOnAxis(void)
+asynStatus eemcuAxis::setMotorHighLimitOnAxis(void)
 {
   asynStatus status = asynSuccess;
   int enable = drvlocal.defined.motorHighLimit;
@@ -467,7 +467,7 @@ asynStatus TwinCATmotorAxis::setMotorHighLimitOnAxis(void)
 /** Set the low soft-limit on an axis
   *
   */
-asynStatus TwinCATmotorAxis::setMotorLowLimitOnAxis(void)
+asynStatus eemcuAxis::setMotorLowLimitOnAxis(void)
 {
   asynStatus status = asynSuccess;
   int enable = drvlocal.defined.motorLowLimit;
@@ -482,7 +482,7 @@ asynStatus TwinCATmotorAxis::setMotorLowLimitOnAxis(void)
 /** Set the low soft-limit on an axis
   *
   */
-asynStatus TwinCATmotorAxis::setMotorLimitsOnAxisIfDefined(void)
+asynStatus eemcuAxis::setMotorLimitsOnAxisIfDefined(void)
 {
   asynStatus status = asynError;
   asynPrint(pC_->pasynUserController_, ASYN_TRACEIO_DRIVER, "\n");
@@ -501,7 +501,7 @@ asynStatus TwinCATmotorAxis::setMotorLimitsOnAxisIfDefined(void)
 /** Update the soft limits in the controller, if needed
   *
   */
-asynStatus TwinCATmotorAxis::updateSoftLimitsIfDirty(int line)
+asynStatus eemcuAxis::updateSoftLimitsIfDirty(int line)
 {
   asynPrint(pC_->pasynUserController_, ASYN_TRACEIO_DRIVER,
             "called from %d\n",line);
@@ -509,11 +509,11 @@ asynStatus TwinCATmotorAxis::updateSoftLimitsIfDirty(int line)
   return asynSuccess;
 }
 
-asynStatus TwinCATmotorAxis::resetAxis(void)
+asynStatus eemcuAxis::resetAxis(void)
 {
   int Err = 0;
   asynStatus status;
-  status = pC_->getIntegerParam(axisNo_, pC_->TwinCATmotorErr_, &Err);
+  status = pC_->getIntegerParam(axisNo_, pC_->eemcuErr_, &Err);
   if (Err) {
     status = setValueOnAxis("bEnable", 0);
     if (status) goto resetAxisReturn;
@@ -537,7 +537,7 @@ resetAxisReturn:
 /** Enable the amplifier on an axis
   *
   */
-asynStatus TwinCATmotorAxis::enableAmplifier(int on)
+asynStatus eemcuAxis::enableAmplifier(int on)
 {
   asynStatus status = asynSuccess;
   if (on) status = resetAxis();
@@ -548,7 +548,7 @@ asynStatus TwinCATmotorAxis::enableAmplifier(int on)
 /** Stop the axis
   *
   */
-asynStatus TwinCATmotorAxis::stopAxisInternal(const char *function_name, double acceleration)
+asynStatus eemcuAxis::stopAxisInternal(const char *function_name, double acceleration)
 {
   asynStatus status = setValueOnAxis("bExecute", 0); /* Stop executing */
   if (status == asynSuccess) {
@@ -564,14 +564,14 @@ asynStatus TwinCATmotorAxis::stopAxisInternal(const char *function_name, double 
 /** Stop the axis, called by motor Record
   *
   */
-asynStatus TwinCATmotorAxis::stop(double acceleration )
+asynStatus eemcuAxis::stop(double acceleration )
 {
   return stopAxisInternal(__FUNCTION__, acceleration);
 }
 
 
 
-asynStatus TwinCATmotorAxis::pollAll(bool *moving, st_axis_status_type *pst_axis_status)
+asynStatus eemcuAxis::pollAll(bool *moving, st_axis_status_type *pst_axis_status)
 {
   asynStatus comStatus;
 
@@ -631,7 +631,7 @@ asynStatus TwinCATmotorAxis::pollAll(bool *moving, st_axis_status_type *pst_axis
   * It calls setIntegerParam() and setDoubleParam() for each item that it polls,
   * and then calls callParamCallbacks() at the end.
   * \param[out] moving A flag that is set indicating that the axis is moving (true) or done (false). */
-asynStatus TwinCATmotorAxis::poll(bool *moving)
+asynStatus eemcuAxis::poll(bool *moving)
 {
   asynStatus comStatus;
   int nowMoving = 0;
@@ -671,8 +671,8 @@ asynStatus TwinCATmotorAxis::poll(bool *moving)
   setIntegerParam(pC_->motorStatusLowLimit_, !st_axis_status.bLimitBwd);
   setIntegerParam(pC_->motorStatusHighLimit_, !st_axis_status.bLimitFwd);
   setIntegerParam(pC_->motorStatusPowerOn_, st_axis_status.bEnabled);
-  setIntegerParam(pC_->TwinCATmotorErr_, st_axis_status.bError);
-  setIntegerParam(pC_->TwinCATmotorErrId_, st_axis_status.nErrorId);
+  setIntegerParam(pC_->eemcuErr_, st_axis_status.bError);
+  setIntegerParam(pC_->eemcuErrId_, st_axis_status.nErrorId);
 
   /* Use previous fActPosition and current fActPosition to calculate direction.*/
   if (st_axis_status.fActPosition > drvlocal.oldPosition) {
@@ -743,7 +743,7 @@ skip:
   return asynError;
 }
 
-asynStatus TwinCATmotorAxis::setIntegerParam(int function, int value)
+asynStatus eemcuAxis::setIntegerParam(int function, int value)
 {
   asynStatus status;
   if (function == pC_->motorClosedLoop_) {
@@ -755,10 +755,10 @@ asynStatus TwinCATmotorAxis::setIntegerParam(int function, int value)
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
                   "setIntegerParam(motorRecDirection_)=%d\n", value);
 #endif
-#ifdef TwinCATmotorProcHomString
-  } else if (function == pC_->TwinCATmotorHomeProc_) {
+#ifdef eemcuProcHomString
+  } else if (function == pC_->eemcuHomeProc_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setIntegerParam(TwinCATmotorHomeProc_)=%d\n", value);
+                  "setIntegerParam(eemcuHomeProc_)=%d\n", value);
 #endif
   }
 
@@ -774,7 +774,7 @@ asynStatus TwinCATmotorAxis::setIntegerParam(int function, int value)
   * When the IOC starts, we will send the soft limits to the controller.
   * When a soft limit is changed, and update is send them to the controller.
   */
-asynStatus TwinCATmotorAxis::setDoubleParam(int function, double value)
+asynStatus eemcuAxis::setDoubleParam(int function, double value)
 {
   asynStatus status;
   if (function == pC_->motorHighLimit_) {
@@ -894,10 +894,10 @@ asynStatus TwinCATmotorAxis::setDoubleParam(int function, double value)
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
                   "setDoubleParam(motorRecOffset_)=%f\n", value);
 #endif
-#ifdef HOME_VEL_TOString
-  } else if (function == pC_->TwinCATmotorHOME_VEL_TO_) {
+#ifdef eemcuJVELString
+  } else if (function == pC_->eemcuJVEL_) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(TwinCATmotorHOME_VEL_TO_)=%f\n", value);
+                  "setDoubleParam(eemcuJVEL_)=%f\n", value);
 #endif
   }
 
