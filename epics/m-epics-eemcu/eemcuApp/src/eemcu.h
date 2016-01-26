@@ -132,6 +132,7 @@ private:
   asynStatus resetAxis(void);
   asynStatus enableAmplifier(int);
   asynStatus sendVelocityAndAccelExecute(double maxVelocity, double acceleration);
+  asynStatus setClosedLoop(bool closedLoop);
   asynStatus setIntegerParam(int function, int value);
   asynStatus setDoubleParam(int function, double value);
   asynStatus stopAxisInternal(const char *function_name, double acceleration);
