@@ -869,7 +869,6 @@ asynStatus eemcuAxis::setDoubleParam(int function, double value)
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
               "setDoublmotor(%d motorDGain_oveRel_)=%f\n", axisNo_, value);
     /* Limits handled above */
-  } else if (function == pC_->motorClosedLoop_) {
 
 #ifdef motorPowerAutoOnOffString
   } else if (function == pC_->motorPowerAutoOnOff_) {
