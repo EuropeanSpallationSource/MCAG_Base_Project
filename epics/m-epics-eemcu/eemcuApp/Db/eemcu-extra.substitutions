@@ -1,4 +1,4 @@
-file "TwinCATmotor-extra.template"
+file "eemcu-extra.template"
 {
 pattern
 {P,      M,    R,   PORT, ADDR, HOMEPROC}

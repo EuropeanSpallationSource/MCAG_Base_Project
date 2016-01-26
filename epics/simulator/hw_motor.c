@@ -11,10 +11,10 @@
 #define MOTOR_PARK_POS (-64)
 
 /* Homing procdures LS=Limit switch, HS=Home switch */
-#define HOME_PROC_LOW_LS  1
-#define HOME_PROC_HIGH_LS 2
-#define HOME_PROC_LOW_HS  3
-#define HOME_PROC_HIGH_HS 4
+#define ProcHom_LOW_LS  1
+#define ProcHom_HIGH_LS 2
+#define ProcHom_LOW_HS  3
+#define ProcHom_HIGH_HS 4
 
 #define MOTOR_VEL_HOME_MAX 5.0
 
@@ -77,18 +77,18 @@ static void recalculate_pos(int axis_no, int nCmdData)
   double HWhighPos = motor_axis[axis_no].HWhighPos;
   double oldLowHardLimitPos = motor_axis[axis_no].lowHardLimitPos;
   switch (nCmdData) {
-    case HOME_PROC_LOW_LS:
+    case ProcHom_LOW_LS:
       motor_axis[axis_no].lowHardLimitPos = 0;
       motor_axis[axis_no].HomeSwitchPos = HWhomeSwitchpos - HWlowPos;
       motor_axis[axis_no].highHardLimitPos = HWhighPos - HWlowPos;
       break;
-    case HOME_PROC_HIGH_LS:
+    case ProcHom_HIGH_LS:
       motor_axis[axis_no].lowHardLimitPos = HWlowPos - HWhighPos;
       motor_axis[axis_no].HomeSwitchPos = HWhomeSwitchpos - HWhighPos;
       motor_axis[axis_no].highHardLimitPos = 0;
       break;
-    case HOME_PROC_LOW_HS:
-    case HOME_PROC_HIGH_HS:
+    case ProcHom_LOW_HS:
+    case ProcHom_HIGH_HS:
       motor_axis[axis_no].lowHardLimitPos = HWlowPos;
       motor_axis[axis_no].HomeSwitchPos = 0;
       motor_axis[axis_no].highHardLimitPos = HWhighPos;
@@ -587,19 +587,19 @@ int moveHomeProc(int axis_no,
   recalculate_pos(axis_no, nCmdData);
   position = motor_axis[axis_no].HomeProcPos;
   switch (nCmdData) {
-    case HOME_PROC_LOW_LS:
+    case ProcHom_LOW_LS:
       if (!motor_axis[axis_no].definedLowHardLimitPos)
         return -1;
       motor_axis[axis_no].HomeProcPos = motor_axis[axis_no].lowHardLimitPos;
       break;
-    case HOME_PROC_HIGH_LS:
+    case ProcHom_HIGH_LS:
       if (!motor_axis[axis_no].definedHighHardLimitPos)
         return -1;
       motor_axis[axis_no].HomeProcPos =
         motor_axis[axis_no].highHardLimitPos;
       break;
-    case HOME_PROC_LOW_HS:
-    case HOME_PROC_HIGH_HS:
+    case ProcHom_LOW_HS:
+    case ProcHom_HIGH_HS:
       motor_axis[axis_no].HomeProcPos = motor_axis[axis_no].HomeSwitchPos;
       break;
     default:
@@ -641,7 +641,7 @@ int moveHome(int axis_no,
              double acceleration)
 {
   return moveHomeProc(axis_no, direction,
-                      HOME_PROC_LOW_HS, /* int nCmdData, */
+                      ProcHom_LOW_HS, /* int nCmdData, */
                       max_velocity,acceleration);
 }
 

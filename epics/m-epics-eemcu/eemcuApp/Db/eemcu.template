@@ -28,7 +28,7 @@ record(motor,"$(P)$(M)")
 # which is needed for profile moves and other applications
 
 # Motor direction for this axis
-record(longout,"$(P)$(M)Direction") {
+record(longout,"$(P)$(R)DIR_") {
     field(DESC, "$(M) direction")
     field(DOL,  "$(P)$(M).DIR CP MS")
     field(OMSL, "closed_loop")
@@ -38,7 +38,7 @@ record(longout,"$(P)$(M)Direction") {
 
 
 # Motor offset for this axis
-record(ao,"$(P)$(M)Offset") {
+record(ao,"$(P)$(R)OFF_") {
     field(DESC, "$(M) offset")
     field(DOL,  "$(P)$(M).OFF CP MS")
     field(OMSL, "closed_loop")
@@ -49,7 +49,7 @@ record(ao,"$(P)$(M)Offset") {
 
 
 # Motor resolution for this axis
-record(ao,"$(P)$(M)Resolution") {
+record(ao,"$(P)$(R)MRES_") {
     field(DESC, "$(M) resolution")
     field(DOL,  "$(P)$(M).MRES CP MS")
     field(OMSL, "closed_loop")
@@ -58,27 +58,13 @@ record(ao,"$(P)$(M)Resolution") {
     field(PREC, "$(PREC)")
 }
 
-grecord(ai,"$(P)$(R)READBACK") {
+grecord(ai,"$(P)$(R)Pos-RB") {
     field(DESC,"Readback")
     field(PREC,"4")
     field(PINI, "1")
     field(DTYP, "asynFloat64")
     field(SCAN, "I/O Intr")
     field(INP,"@asyn($(PORT),$(ADDR))MOTOR_POSITION")
-}
-
-record(longin, "$(P)$(R)BERROR")
-{
-    field(DTYP, "asynInt32")
-    field(INP,  "@asyn($(PORT),$(ADDR))BERROR")
-    field(SCAN, "I/O Intr")
-}
-
-record(longin, "$(P)$(R)NERRORID")
-{
-    field(DTYP, "asynInt32")
-    field(INP,  "@asyn($(PORT),$(ADDR))NERRORID")
-    field(SCAN, "I/O Intr")
 }
 
 

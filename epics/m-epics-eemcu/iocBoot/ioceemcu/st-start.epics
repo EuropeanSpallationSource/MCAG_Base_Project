@@ -1,4 +1,4 @@
-#!../../bin/__EPICS_HOST_ARCH/TwinCATmotor
+#!../../bin/__EPICS_HOST_ARCH/eemcu
 
  # This file is not ment to be executed directly
  # It is preprocessed by doit.sh into e.g. st.cmd.linux-x86_64
@@ -8,10 +8,10 @@
 cd ${TOP}
 
 ## Register all support components
-dbLoadDatabase "dbd/TwinCATmotor.dbd"
-TwinCATmotor_registerRecordDeviceDriver pdbbase
+dbLoadDatabase "dbd/eemcu.dbd"
+eemcu_registerRecordDeviceDriver pdbbase
 
 ## Load record instances
-dbLoadRecords("db/TwinCATmotor.db")
-dbLoadRecords("db/TwinCATmotor-extra.db")
+dbLoadRecords("db/eemcu.db")
+dbLoadRecords("db/eemcu-extra.db")
 

@@ -1,5 +1,5 @@
 #!/bin/sh
-APPXX=TwinCATmotor
+APPXX=eemcu
 export APPXX
 
 uname_s=$(uname -s 2>/dev/null || echo unknown)
@@ -155,7 +155,7 @@ fi
     cat st-start.EEE st-main st-end.EEE |  \
       sed                                        \
       -e "s/__EPICS_HOST_ARCH/$EPICS_HOST_ARCH/" \
-      -e "s/TwinCATmotor,USER/TwinCATmotor,$USER/" \
+      -e "s/eemcu,USER/eemcu,$USER/" \
       -e "s/127.0.0.1:5024/$MOTORIP:$MOTORPORT/" \
       | grep -v '^  *#' >$stcmddst &&
     chmod -w $stcmddst &&

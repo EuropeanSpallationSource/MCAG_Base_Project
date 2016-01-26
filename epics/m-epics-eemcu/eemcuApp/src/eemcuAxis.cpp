@@ -1,5 +1,5 @@
 /*
-FILENAME... TwinCATmotorAxis.cpp
+  FILENAME... eemcuAxis.cpp
 */
 
 #include <stdio.h>
@@ -8,25 +8,25 @@ FILENAME... TwinCATmotorAxis.cpp
 
 #include <epicsThread.h>
 
-#include "TwinCATmotor.h"
+#include "eemcu.h"
 
 #ifndef ASYN_TRACE_INFO
 #define ASYN_TRACE_INFO      0x0040
 #endif
 
 //
-// These are the TwinCATmotorAxis methods
+// These are the eemcuAxis methods
 //
 
-/** Creates a new TwinCATmotorAxis object.
-  * \param[in] pC Pointer to the TwinCATmotorController to which this axis belongs.
-  * \param[in] axisNo Index number of this axis, range 1 to pC->numAxes_. (0 is not used)
-  *
-  *
-  * Initializes register numbers, etc.
-  */
-TwinCATmotorAxis::TwinCATmotorAxis(TwinCATmotorController *pC, int axisNo,
-				   int axisFlags, const char *axisOptionsStr)
+/** Creates a new eemcuAxis object.
+ * \param[in] pC Pointer to the eemcuController to which this axis belongs.
+ * \param[in] axisNo Index number of this axis, range 1 to pC->numAxes_. (0 is not used)
+ *
+ *
+ * Initializes register numbers, etc.
+ */
+eemcuAxis::eemcuAxis(eemcuController *pC, int axisNo,
+                     int axisFlags, const char *axisOptionsStr)
   : asynMotorAxis(pC, axisNo),
     pC_(pC)
 {
@@ -62,43 +62,43 @@ TwinCATmotorAxis::TwinCATmotorAxis(TwinCATmotorController *pC, int axisNo,
 }
 
 
-extern "C" int TwinCATmotorCreateAxis(const char *TwinCATmotorName, int axisNo,
-				      int axisFlags, const char *axisOptionsStr)
+extern "C" int eemcuCreateAxis(const char *eemcuName, int axisNo,
+                               int axisFlags, const char *axisOptionsStr)
 {
-  TwinCATmotorController *pC;
+  eemcuController *pC;
 
-  pC = (TwinCATmotorController*) findAsynPortDriver(TwinCATmotorName);
+  pC = (eemcuController*) findAsynPortDriver(eemcuName);
   if (!pC)
   {
-    printf("Error port %s not found\n", TwinCATmotorName);
+    printf("Error port %s not found\n", eemcuName);
     return asynError;
   }
   pC->lock();
-  new TwinCATmotorAxis(pC, axisNo, axisFlags, axisOptionsStr);
+  new eemcuAxis(pC, axisNo, axisFlags, axisOptionsStr);
   pC->unlock();
   return asynSuccess;
 }
 
 /** Connection status is changed, the dirty bits must be set and
  *  the values in the controller must be updated
-  * \param[in] AsynStatus status
-  *
-  * Sets the dirty bits
-  */
-void TwinCATmotorAxis::handleStatusChange(asynStatus newStatus)
+ * \param[in] AsynStatus status
+ *
+ * Sets the dirty bits
+ */
+void eemcuAxis::handleStatusChange(asynStatus newStatus)
 {
   asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
-            "TwinCATmotorAxis::handleStatusChange status=%s (%d)\n",
+            "eemcuAxis::handleStatusChange status=%s (%d)\n",
             pasynManager->strStatus(newStatus), (int)newStatus);
   if (newStatus != asynSuccess) {
     memset(&drvlocal.dirty, 0xFF, sizeof(drvlocal.dirty));
   } else {
     asynStatus status = asynSuccess;
     if (drvlocal.axisFlags & AMPLIFIER_ON_FLAG_CREATE_AXIS) {
-	/* Enable the amplifier when the axis is created,
-	   but wait until we have a connection to the controller.
-	   After we lost the connection, Re-enable the amplifier
-	   See AMPLIFIER_ON_FLAG */
+      /* Enable the amplifier when the axis is created,
+         but wait until we have a connection to the controller.
+         After we lost the connection, Re-enable the amplifier
+         See AMPLIFIER_ON_FLAG */
       status = enableAmplifier(1);
     }
     /*  Enable "Target Position Monitoring" */
@@ -107,16 +107,16 @@ void TwinCATmotorAxis::handleStatusChange(asynStatus newStatus)
 }
 
 /** Reports on status of the axis
-  * \param[in] fp The file pointer on which report information will be written
-  * \param[in] level The level of report detail desired
-  *
-  * After printing device-specific information calls asynMotorAxis::report()
-  */
-void TwinCATmotorAxis::report(FILE *fp, int level)
+ * \param[in] fp The file pointer on which report information will be written
+ * \param[in] level The level of report detail desired
+ *
+ * After printing device-specific information calls asynMotorAxis::report()
+ */
+void eemcuAxis::report(FILE *fp, int level)
 {
   if (level > 0) {
     fprintf(fp, "  axis %d\n", axisNo_);
- }
+  }
 
   // Call the base class method
   asynMotorAxis::report(fp, level);
@@ -124,13 +124,13 @@ void TwinCATmotorAxis::report(FILE *fp, int level)
 
 
 /** Writes a command to the axis, and expects a logical ack from the controller
-  * Outdata is in pC_->outString_
-  * Indata is in pC_->inString_
-  * The communiction is logged ASYN_TRACE_INFO
-  *
-  * When the communictaion fails ot times out, writeReadOnErrorDisconnect() is called
-  */
-asynStatus TwinCATmotorAxis::writeReadACK(void)
+ * Outdata is in pC_->outString_
+ * Indata is in pC_->inString_
+ * The communiction is logged ASYN_TRACE_INFO
+ *
+ * When the communictaion fails ot times out, writeReadOnErrorDisconnect() is called
+ */
+asynStatus eemcuAxis::writeReadACK(void)
 {
   asynStatus status = pC_->writeReadOnErrorDisconnect();
   switch (status) {
@@ -158,26 +158,26 @@ asynStatus TwinCATmotorAxis::writeReadACK(void)
 
 
 /** Sets an integer or boolean value on an axis
-  * the values in the controller must be updated
-  * \param[in] name of the variable to be updated
-  * \param[in] value the (integer) variable to be updated
-  *
-  */
-asynStatus TwinCATmotorAxis::setValueOnAxis(const char* var, int value)
+ * the values in the controller must be updated
+ * \param[in] name of the variable to be updated
+ * \param[in] value the (integer) variable to be updated
+ *
+ */
+asynStatus eemcuAxis::setValueOnAxis(const char* var, int value)
 {
   sprintf(pC_->outString_, "Main.M%d.%s=%d", axisNo_, var, value);
   return writeReadACK();
 }
 
 /** Sets an integer or boolean value on an axis, read it back and retry if needed
-  * the values in the controller must be updated
-  * \param[in] name of the variable to be updated
-  * \param[in] name of the variable where we can read back
-  * \param[in] value the (integer) variable to be updated
-  * \param[in] number of retries
-  */
-asynStatus TwinCATmotorAxis::setValueOnAxisVerify(const char *var, const char *rbvar,
-                                                  int value, unsigned int retryCount)
+ * the values in the controller must be updated
+ * \param[in] name of the variable to be updated
+ * \param[in] name of the variable where we can read back
+ * \param[in] value the (integer) variable to be updated
+ * \param[in] number of retries
+ */
+asynStatus eemcuAxis::setValueOnAxisVerify(const char *var, const char *rbvar,
+                                           int value, unsigned int retryCount)
 {
   asynStatus status = asynSuccess;
   unsigned int counter = 0;
@@ -195,18 +195,18 @@ asynStatus TwinCATmotorAxis::setValueOnAxisVerify(const char *var, const char *r
 }
 
 /** Sets a floating point value on an axis
-  * the values in the controller must be updated
-  * \param[in] name of the variable to be updated
-  * \param[in] value the (floating point) variable to be updated
-  *
-  */
-asynStatus TwinCATmotorAxis::setValueOnAxis(const char* var, double value)
+ * the values in the controller must be updated
+ * \param[in] name of the variable to be updated
+ * \param[in] value the (floating point) variable to be updated
+ *
+ */
+asynStatus eemcuAxis::setValueOnAxis(const char* var, double value)
 {
   sprintf(pC_->outString_, "Main.M%d.%s=%f", axisNo_, var, value);
   return writeReadACK();
 }
 
-int TwinCATmotorAxis::getMotionAxisID(void)
+int eemcuAxis::getMotionAxisID(void)
 {
   int ret = drvlocal.dirty.nMotionAxisID;
   if (ret < 0) {
@@ -222,36 +222,36 @@ int TwinCATmotorAxis::getMotionAxisID(void)
   return ret;
 }
 
-asynStatus TwinCATmotorAxis::setADRValueOnAxis(unsigned adsport,
-                                               unsigned indexGroup,
-                                               unsigned indexOffset,
-                                               int value)
+asynStatus eemcuAxis::setADRValueOnAxis(unsigned adsport,
+                                        unsigned indexGroup,
+                                        unsigned indexOffset,
+                                        int value)
 {
   int axisID = getMotionAxisID();
   if (axisID < 0) return asynError;
   sprintf(pC_->outString_, "ADSPORT=%u/.ADR.16#%X,16#%X,2,2=%d",
-	  adsport, indexGroup + axisID, indexOffset, value);
+          adsport, indexGroup + axisID, indexOffset, value);
   return writeReadACK();
 }
 
-asynStatus TwinCATmotorAxis::setADRValueOnAxis(unsigned adsport,
-                                               unsigned indexGroup,
-                                               unsigned indexOffset,
-                                               double value)
+asynStatus eemcuAxis::setADRValueOnAxis(unsigned adsport,
+                                        unsigned indexGroup,
+                                        unsigned indexOffset,
+                                        double value)
 {
   int axisID = getMotionAxisID();
   if (axisID < 0) return asynError;
   sprintf(pC_->outString_, "ADSPORT=%u/.ADR.16#%X,16#%X,8,5=%f",
-	  adsport, indexGroup + axisID, indexOffset, value);
+          adsport, indexGroup + axisID, indexOffset, value);
   return writeReadACK();
 }
 
 /** Gets an integer or boolean value from an axis
-  * \param[in] name of the variable to be retrieved
-  * \param[in] pointer to the integer result
-  *
-  */
-asynStatus TwinCATmotorAxis::getValueFromAxis(const char* var, int *value)
+ * \param[in] name of the variable to be retrieved
+ * \param[in] pointer to the integer result
+ *
+ */
+asynStatus eemcuAxis::getValueFromAxis(const char* var, int *value)
 {
   asynStatus comStatus;
   int res;
@@ -285,11 +285,11 @@ asynStatus TwinCATmotorAxis::getValueFromAxis(const char* var, int *value)
 
 
 /** Gets a floating point value from an axis
-  * \param[in] name of the variable to be retrieved
-  * \param[in] pointer to the double result
-  *
-  */
-asynStatus TwinCATmotorAxis::getValueFromAxis(const char* var, double *value)
+ * \param[in] name of the variable to be retrieved
+ * \param[in] pointer to the double result
+ *
+ */
+asynStatus eemcuAxis::getValueFromAxis(const char* var, double *value)
 {
   asynStatus comStatus;
   int nvals;
@@ -309,7 +309,7 @@ asynStatus TwinCATmotorAxis::getValueFromAxis(const char* var, double *value)
   return asynSuccess;
 }
 
-asynStatus TwinCATmotorAxis::getValueFromController(const char* var, double *value)
+asynStatus eemcuAxis::getValueFromController(const char* var, double *value)
 {
   asynStatus comStatus;
   int nvals;
@@ -330,20 +330,18 @@ asynStatus TwinCATmotorAxis::getValueFromController(const char* var, double *val
 }
 
 /** Set velocity and acceleration for the axis
-  * \param[in] maxVelocity, mm/sec
-  * \param[in] acceleration ???
-  *
-  */
-asynStatus TwinCATmotorAxis::sendVelocityAndAccelExecute(double maxVelocity, double acceleration_time)
+ * \param[in] maxVelocity, mm/sec
+ * \param[in] acceleration ???
+ *
+ */
+asynStatus eemcuAxis::sendVelocityAndAccelExecute(double maxVelocity, double acceleration_time)
 {
   asynStatus status;
-  status = resetAxis();
-  if (status) return status;
   /* We don't use minVelocity */
   double maxVelocityEGU = maxVelocity * drvlocal.mres;
   if (!drvlocal.mres) {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-	      "sendVelocityAndAccelExecute(%d) mres==0.0\n",  axisNo_);
+              "sendVelocityAndAccelExecute(%d) mres==0.0\n",  axisNo_);
     return asynError; /* No mres, no move */
   }
   if (acceleration_time > 0.0001) {
@@ -354,7 +352,7 @@ asynStatus TwinCATmotorAxis::sendVelocityAndAccelExecute(double maxVelocity, dou
     if (status) return status;
   } else {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-	      "sendVelocityAndAccelExecute(%d) maxVelocityEGU=%g acceleration_time=%g\n",
+              "sendVelocityAndAccelExecute(%d) maxVelocityEGU=%g acceleration_time=%g\n",
               axisNo_, maxVelocityEGU, acceleration_time);
   }
   status = setValueOnAxis("fVelocity", maxVelocityEGU);
@@ -364,14 +362,14 @@ asynStatus TwinCATmotorAxis::sendVelocityAndAccelExecute(double maxVelocity, dou
 }
 
 /** Move the axis to a position, either absolute or relative
-  * \param[in] position in mm
-  * \param[in] relative (0=absolute, otherwise relative)
-  * \param[in] minimum velocity, mm/sec
-  * \param[in] maximum velocity, mm/sec
-  * \param[in] acceleration, seconds to maximum velocity
-  *
-  */
-asynStatus TwinCATmotorAxis::move(double position, int relative, double minVelocity, double maxVelocity, double acceleration)
+ * \param[in] position in mm
+ * \param[in] relative (0=absolute, otherwise relative)
+ * \param[in] minimum velocity, mm/sec
+ * \param[in] maximum velocity, mm/sec
+ * \param[in] acceleration, seconds to maximum velocity
+ *
+ */
+asynStatus eemcuAxis::move(double position, int relative, double minVelocity, double maxVelocity, double acceleration)
 {
   asynStatus status = asynSuccess;
 
@@ -386,23 +384,23 @@ asynStatus TwinCATmotorAxis::move(double position, int relative, double minVeloc
 
 
 /** Home the motor, search the home position
-  * \param[in] minimum velocity, mm/sec
-  * \param[in] maximum velocity, mm/sec
-  * \param[in] acceleration, seconds to maximum velocity
-  * \param[in] forwards (0=backwards, otherwise forwards)
-  *
-  */
-asynStatus TwinCATmotorAxis::home(double minVelocity, double maxVelocity, double acceleration, int forwards)
+ * \param[in] minimum velocity, mm/sec
+ * \param[in] maximum velocity, mm/sec
+ * \param[in] acceleration, seconds to maximum velocity
+ * \param[in] forwards (0=backwards, otherwise forwards)
+ *
+ */
+asynStatus eemcuAxis::home(double minVelocity, double maxVelocity, double acceleration, int forwards)
 {
   asynStatus status = asynSuccess;
   int motorHomeProc = -1;
   double homeVeloTowardsHomeSensor = 0;
-                                                         
+
   if (status == asynSuccess) status = pC_->getDoubleParam(axisNo_,
-                                                          pC_->TwinCATmotorHOME_VEL_TO_,
+                                                          pC_->eemcuJVEL_,
                                                           &homeVeloTowardsHomeSensor);
   if (status == asynSuccess) status = pC_->getIntegerParam(axisNo_,
-                                                           pC_->TwinCATmotorHomeProc_,
+                                                           pC_->eemcuProcHom_,
                                                            &motorHomeProc);
   asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
             "home() motorHomeProc=%d homeVeloTowardsHomeSensor=%f status=%s (%d)\n",
@@ -430,12 +428,12 @@ asynStatus TwinCATmotorAxis::home(double minVelocity, double maxVelocity, double
 
 
 /** jog the the motor, search the home position
-  * \param[in] minimum velocity, mm/sec (not used)
-  * \param[in] maximum velocity, mm/sec (positive or negative)
-  * \param[in] acceleration, seconds to maximum velocity
-  *
-  */
-asynStatus TwinCATmotorAxis::moveVelocity(double minVelocity, double maxVelocity, double acceleration)
+ * \param[in] minimum velocity, mm/sec (not used)
+ * \param[in] maximum velocity, mm/sec (positive or negative)
+ * \param[in] acceleration, seconds to maximum velocity
+ *
+ */
+asynStatus eemcuAxis::moveVelocity(double minVelocity, double maxVelocity, double acceleration)
 {
   asynStatus status = asynSuccess;
 
@@ -449,9 +447,9 @@ asynStatus TwinCATmotorAxis::moveVelocity(double minVelocity, double maxVelocity
 
 
 /** Set the high soft-limit on an axis
-  *
-  */
-asynStatus TwinCATmotorAxis::setMotorHighLimitOnAxis(void)
+ *
+ */
+asynStatus eemcuAxis::setMotorHighLimitOnAxis(void)
 {
   asynStatus status = asynSuccess;
   int enable = drvlocal.defined.motorHighLimit;
@@ -465,9 +463,9 @@ asynStatus TwinCATmotorAxis::setMotorHighLimitOnAxis(void)
 
 
 /** Set the low soft-limit on an axis
-  *
-  */
-asynStatus TwinCATmotorAxis::setMotorLowLimitOnAxis(void)
+ *
+ */
+asynStatus eemcuAxis::setMotorLowLimitOnAxis(void)
 {
   asynStatus status = asynSuccess;
   int enable = drvlocal.defined.motorLowLimit;
@@ -480,9 +478,9 @@ asynStatus TwinCATmotorAxis::setMotorLowLimitOnAxis(void)
 }
 
 /** Set the low soft-limit on an axis
-  *
-  */
-asynStatus TwinCATmotorAxis::setMotorLimitsOnAxisIfDefined(void)
+ *
+ */
+asynStatus eemcuAxis::setMotorLimitsOnAxisIfDefined(void)
 {
   asynStatus status = asynError;
   asynPrint(pC_->pasynUserController_, ASYN_TRACEIO_DRIVER, "\n");
@@ -499,9 +497,9 @@ asynStatus TwinCATmotorAxis::setMotorLimitsOnAxisIfDefined(void)
 
 
 /** Update the soft limits in the controller, if needed
-  *
-  */
-asynStatus TwinCATmotorAxis::updateSoftLimitsIfDirty(int line)
+ *
+ */
+asynStatus eemcuAxis::updateSoftLimitsIfDirty(int line)
 {
   asynPrint(pC_->pasynUserController_, ASYN_TRACEIO_DRIVER,
             "called from %d\n",line);
@@ -509,25 +507,25 @@ asynStatus TwinCATmotorAxis::updateSoftLimitsIfDirty(int line)
   return asynSuccess;
 }
 
-asynStatus TwinCATmotorAxis::resetAxis(void)
+asynStatus eemcuAxis::resetAxis(void)
 {
-  int bError = 0;
+  int Err = 0;
   asynStatus status;
-  status = pC_->getIntegerParam(axisNo_, pC_->TwinCATmotorBError_, &bError);
-  if (bError) {
-    status = setValueOnAxis("bEnable", 0);
+  status = pC_->getIntegerParam(axisNo_, pC_->eemcuErr_, &Err);
+  if (Err) {
+    status = setValueOnAxis("bExecute", 0);
     if (status) goto resetAxisReturn;
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-	      "bReset=1(%d)\n",  axisNo_);
+              "bReset=1(%d)\n",  axisNo_);
     status = setValueOnAxisVerify("bReset", "bReset", 1, 20);
     if (status) goto resetAxisReturn;
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-	      "bReset=0(%d)\n",  axisNo_);
+              "bReset=0(%d)\n",  axisNo_);
     status = setValueOnAxisVerify("bReset", "bReset", 0, 20);
     //if (status) goto resetAxisReturn;
   }
 
-resetAxisReturn:
+  resetAxisReturn:
   asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
             "resetAxis() status=%s (%d)\n",
             pasynManager->strStatus(status), (int)status);
@@ -535,25 +533,24 @@ resetAxisReturn:
 }
 
 /** Enable the amplifier on an axis
-  *
-  */
-asynStatus TwinCATmotorAxis::enableAmplifier(int on)
+ *
+ */
+asynStatus eemcuAxis::enableAmplifier(int on)
 {
   asynStatus status = asynSuccess;
-  if (on) status = resetAxis();
   if (status) return status;
   return setValueOnAxisVerify("bEnable", "bEnabled", on ? 1 : 0, 100);
 }
 
 /** Stop the axis
-  *
-  */
-asynStatus TwinCATmotorAxis::stopAxisInternal(const char *function_name, double acceleration)
+ *
+ */
+asynStatus eemcuAxis::stopAxisInternal(const char *function_name, double acceleration)
 {
   asynStatus status = setValueOnAxis("bExecute", 0); /* Stop executing */
   if (status == asynSuccess) {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-	      "stopAxisInternal(%d) (%s)\n",  axisNo_, function_name);
+              "stopAxisInternal(%d) (%s)\n",  axisNo_, function_name);
     drvlocal.dirty.mustStop = 0;
   } else {
     drvlocal.dirty.mustStop = 1;
@@ -562,16 +559,16 @@ asynStatus TwinCATmotorAxis::stopAxisInternal(const char *function_name, double 
 }
 
 /** Stop the axis, called by motor Record
-  *
-  */
-asynStatus TwinCATmotorAxis::stop(double acceleration )
+ *
+ */
+asynStatus eemcuAxis::stop(double acceleration )
 {
   return stopAxisInternal(__FUNCTION__, acceleration);
 }
 
 
 
-asynStatus TwinCATmotorAxis::pollAll(bool *moving, st_axis_status_type *pst_axis_status)
+asynStatus eemcuAxis::pollAll(bool *moving, st_axis_status_type *pst_axis_status)
 {
   asynStatus comStatus;
 
@@ -584,33 +581,33 @@ asynStatus TwinCATmotorAxis::pollAll(bool *moving, st_axis_status_type *pst_axis
   if (comStatus) return comStatus;
   drvlocal.dirty.stAxisStatus_V00 = 0;
   nvals = sscanf(pC_->inString_,
-		 "Main.M%d.stAxisStatus="
-		 "%d,%d,%d,%u,%u,%lf,%lf,%lf,%lf,%d,"
-		 "%d,%d,%d,%lf,%d,%d,%d,%u,%lf,%lf,%lf,%d,%d",
-		 &motor_axis_no,
-		 &pst_axis_status->bEnable,        /*  1 */
-		 &pst_axis_status->bReset,         /*  2 */
-		 &pst_axis_status->bExecute,       /*  3 */
-		 &pst_axis_status->nCommand,       /*  4 */
-		 &pst_axis_status->nCmdData,       /*  5 */
-		 &pst_axis_status->fVelocity,      /*  6 */
-		 &pst_axis_status->fPosition,      /*  7 */
-		 &pst_axis_status->fAcceleration,  /*  8 */
-		 &pst_axis_status->fDecceleration, /*  9 */
-		 &pst_axis_status->bJogFwd,        /* 10 */
-		 &pst_axis_status->bJogBwd,        /* 11 */
-		 &pst_axis_status->bLimitFwd,      /* 12 */
-		 &pst_axis_status->bLimitBwd,      /* 13 */
-		 &pst_axis_status->fOverride,      /* 14 */
-		 &pst_axis_status->bHomeSensor,    /* 15 */
-		 &pst_axis_status->bEnabled,       /* 16 */
-		 &pst_axis_status->bError,         /* 17 */
-		 &pst_axis_status->nErrorId,       /* 18 */
-		 &pst_axis_status->fActVelocity,   /* 19 */
-		 &pst_axis_status->fActPosition,   /* 20 */
-		 &pst_axis_status->fActDiff,       /* 21 */
-		 &pst_axis_status->bHomed,         /* 22 */
-		 &pst_axis_status->bBusy           /* 23 */);
+                 "Main.M%d.stAxisStatus="
+                 "%d,%d,%d,%u,%u,%lf,%lf,%lf,%lf,%d,"
+                 "%d,%d,%d,%lf,%d,%d,%d,%u,%lf,%lf,%lf,%d,%d",
+                 &motor_axis_no,
+                 &pst_axis_status->bEnable,        /*  1 */
+                 &pst_axis_status->bReset,         /*  2 */
+                 &pst_axis_status->bExecute,       /*  3 */
+                 &pst_axis_status->nCommand,       /*  4 */
+                 &pst_axis_status->nCmdData,       /*  5 */
+                 &pst_axis_status->fVelocity,      /*  6 */
+                 &pst_axis_status->fPosition,      /*  7 */
+                 &pst_axis_status->fAcceleration,  /*  8 */
+                 &pst_axis_status->fDecceleration, /*  9 */
+                 &pst_axis_status->bJogFwd,        /* 10 */
+                 &pst_axis_status->bJogBwd,        /* 11 */
+                 &pst_axis_status->bLimitFwd,      /* 12 */
+                 &pst_axis_status->bLimitBwd,      /* 13 */
+                 &pst_axis_status->fOverride,      /* 14 */
+                 &pst_axis_status->bHomeSensor,    /* 15 */
+                 &pst_axis_status->bEnabled,       /* 16 */
+                 &pst_axis_status->bError,         /* 17 */
+                 &pst_axis_status->nErrorId,       /* 18 */
+                 &pst_axis_status->fActVelocity,   /* 19 */
+                 &pst_axis_status->fActPosition,   /* 20 */
+                 &pst_axis_status->fActDiff,       /* 21 */
+                 &pst_axis_status->bHomed,         /* 22 */
+                 &pst_axis_status->bBusy           /* 23 */);
 
   if (nvals == 24) {
     if (axisNo_ != motor_axis_no) return asynError;
@@ -618,20 +615,20 @@ asynStatus TwinCATmotorAxis::pollAll(bool *moving, st_axis_status_type *pst_axis
     return asynSuccess;
   }
   asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-	    "poll(%d) line=%d nvals=%d\n",
-	    axisNo_, __LINE__, nvals);
+            "poll(%d) line=%d nvals=%d\n",
+            axisNo_, __LINE__, nvals);
   drvlocal.supported.stAxisStatus_V00 = 0;
   return asynError;
 }
 
 
 /** Polls the axis.
-  * This function reads the motor position, the limit status, the home status, the moving status,
-  * and the drive power-on status.
-  * It calls setIntegerParam() and setDoubleParam() for each item that it polls,
-  * and then calls callParamCallbacks() at the end.
-  * \param[out] moving A flag that is set indicating that the axis is moving (true) or done (false). */
-asynStatus TwinCATmotorAxis::poll(bool *moving)
+ * This function reads the motor position, the limit status, the home status, the moving status,
+ * and the drive power-on status.
+ * It calls setIntegerParam() and setDoubleParam() for each item that it polls,
+ * and then calls callParamCallbacks() at the end.
+ * \param[out] moving A flag that is set indicating that the axis is moving (true) or done (false). */
+asynStatus eemcuAxis::poll(bool *moving)
 {
   asynStatus comStatus;
   int nowMoving = 0;
@@ -671,8 +668,8 @@ asynStatus TwinCATmotorAxis::poll(bool *moving)
   setIntegerParam(pC_->motorStatusLowLimit_, !st_axis_status.bLimitBwd);
   setIntegerParam(pC_->motorStatusHighLimit_, !st_axis_status.bLimitFwd);
   setIntegerParam(pC_->motorStatusPowerOn_, st_axis_status.bEnabled);
-  setIntegerParam(pC_->TwinCATmotorBError_, st_axis_status.bError);
-  setIntegerParam(pC_->TwinCATmotorNErrorId_, st_axis_status.nErrorId);
+  setIntegerParam(pC_->eemcuErr_, st_axis_status.bError);
+  setIntegerParam(pC_->eemcuErrId_, st_axis_status.nErrorId);
 
   /* Use previous fActPosition and current fActPosition to calculate direction.*/
   if (st_axis_status.fActPosition > drvlocal.oldPosition) {
@@ -707,13 +704,13 @@ asynStatus TwinCATmotorAxis::poll(bool *moving)
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
               "poll(%d) nowMoving=%d bBusy=%d bExecute=%d fActPosition=%f\n",
               axisNo_, nowMoving,
-	      st_axis_status.bBusy, st_axis_status.bExecute, st_axis_status.fActPosition);
+              st_axis_status.bBusy, st_axis_status.bExecute, st_axis_status.fActPosition);
     drvlocal.oldNowMoving = nowMoving;
   }
   if (drvlocal.old_bError != st_axis_status.bError ||
       drvlocal.old_nErrorId != st_axis_status.nErrorId) {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-              "poll(%d) bError=%d st_axis_status.nErrorId=%d\n",
+              "poll(%d) Err=%d st_axis_status.nErrorId=%d\n",
               axisNo_, st_axis_status.bError, st_axis_status.nErrorId);
     drvlocal.old_bError = st_axis_status.bError;
     drvlocal.old_nErrorId = st_axis_status.nErrorId;
@@ -730,7 +727,7 @@ asynStatus TwinCATmotorAxis::poll(bool *moving)
   callParamCallbacks();
   return asynSuccess;
 
-skip:
+  skip:
   memset(&drvlocal.dirty, 0xFF, sizeof(drvlocal.dirty));
   if (!drvlocal.oldMotorStatusProblem) {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
@@ -743,7 +740,7 @@ skip:
   return asynError;
 }
 
-asynStatus TwinCATmotorAxis::setIntegerParam(int function, int value)
+asynStatus eemcuAxis::setIntegerParam(int function, int value)
 {
   asynStatus status;
   if (function == pC_->motorClosedLoop_) {
@@ -752,13 +749,20 @@ asynStatus TwinCATmotorAxis::setIntegerParam(int function, int value)
     }
 #ifdef motorRecDirectionString
   } else if (function == pC_->motorRecDirection_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setIntegerParam(motorRecDirection_)=%d\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setIntegerParam(%d motorRecDirection_)=%d\n", axisNo_, value);
 #endif
-#ifdef HOME_PROCString
-  } else if (function == pC_->TwinCATmotorHomeProc_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setIntegerParam(TwinCATmotorHomeProc_)=%d\n", value);
+#ifdef eemcuProcHomString
+  } else if (function == pC_->eemcuProcHom_) {
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setIntegerParam(%d TwinCATmotorProcHom_)=%d\n", axisNo_, value);
+#endif
+#ifdef eemcuErrRstString
+  } else if (function == pC_->eemcuErrRst_) {
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setIntegerParam(%d TwinCATmotorErrRst_)=%d\n", axisNo_, value);
+    status = resetAxis();
+    return status;
 #endif
   }
 
@@ -768,136 +772,136 @@ asynStatus TwinCATmotorAxis::setIntegerParam(int function, int value)
 }
 
 /** Set a floating point parameter on the axis
-  * \param[in] function, which parameter is updated
-  * \param[in] value, the new value
-  *
-  * When the IOC starts, we will send the soft limits to the controller.
-  * When a soft limit is changed, and update is send them to the controller.
-  */
-asynStatus TwinCATmotorAxis::setDoubleParam(int function, double value)
+ * \param[in] function, which parameter is updated
+ * \param[in] value, the new value
+ *
+ * When the IOC starts, we will send the soft limits to the controller.
+ * When a soft limit is changed, and update is send them to the controller.
+ */
+asynStatus eemcuAxis::setDoubleParam(int function, double value)
 {
   asynStatus status;
   if (function == pC_->motorHighLimit_) {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-              "setDoubleParam(motorHighLimit_)=%f\n", value);
+              "setDoubleParam(%d motorHighLimit_)=%f\n", axisNo_, value);
     drvlocal.motorHighLimit = value;
     drvlocal.defined.motorHighLimit = 1;
     drvlocal.dirty.motorLimits = 1;
     setMotorLimitsOnAxisIfDefined();
   } else if (function == pC_->motorLowLimit_) {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-              "setDoubleParam(motorLowLimit_)=%f\n", value);
+              "setDoubleParam(%d motorLowLimit_)=%f\n", axisNo_, value);
     drvlocal.motorLowLimit = value;
     drvlocal.defined.motorLowLimit = 1;
     drvlocal.dirty.motorLimits = 1;
     setMotorLimitsOnAxisIfDefined();
 #ifdef motorRecResolutionString
   } else if (function == pC_->motorRecResolution_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorRecResolution_=%f\n", value);
-      drvlocal.mres = value;
-      setMotorLimitsOnAxisIfDefined();
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorRecResolution_=%f\n", axisNo_, value);
+    drvlocal.mres = value;
+    setMotorLimitsOnAxisIfDefined();
 #endif
   }
 
   if (function == pC_->motorMoveRel_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorMoveRel_)=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorMoveRel_)=%f\n", axisNo_, value);
   } else if (function == pC_->motorMoveAbs_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorMoveAbs_)=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorMoveAbs_)=%f\n", axisNo_, value);
   } else if (function == pC_->motorMoveVel_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorMoveVel_)=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorMoveVel_)=%f\n", axisNo_, value);
   } else if (function == pC_->motorHome_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParmotorHome__)=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorHome__)=%f\n", axisNo_, value);
   } else if (function == pC_->motorStop_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParmotorStop_)=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorStop_)=%f\n", axisNo_, value);
   } else if (function == pC_->motorVelocity_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorVelocity_=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorVelocity_=%f\n", axisNo_, value);
   } else if (function == pC_->motorVelBase_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorVelBase_)=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorVelBase_)=%f\n", axisNo_, value);
   } else if (function == pC_->motorAccel_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParamotorAccel_)=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorAccel_)=%f\n", axisNo_, value);
 #if 0
   } else if (function == pC_->motorPosition_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(mmotorPosition_=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorPosition_=%f\n", axisNo_, value);
   } else if (function == pC_->motorEncoderPosition_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorMovmotorEncoderPosition_=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorEncoderPosition_=%f\n", axisNo_, value);
 #endif
   } else if (function == pC_->motorDeferMoves_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motmotorDeferMoves_=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motmotorDeferMoves_=%f\n", axisNo_, value);
   } else if (function == pC_->motorMoveToHome_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motmotorMoveToHome_=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motmotorMoveToHome_=%f\n", axisNo_, value);
   } else if (function == pC_->motorResolution_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorResolution_=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorResolution_=%f\n", axisNo_, value);
   } else if (function == pC_->motorEncoderRatio_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorEncoderRatio_)=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorEncoderRatio_)=%f\n", axisNo_, value);
   } else if (function == pC_->motorPGain_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoublmotorPGain_oveRel_)=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorPGain_oveRel_)=%f\n", axisNo_, value);
   } else if (function == pC_->motorIGain_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoublmotorIGain_oveRel_)=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorIGain_oveRel_)=%f\n", axisNo_, value);
   } else if (function == pC_->motorDGain_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoublmotorDGain_oveRel_)=%f\n", value);
-      /* Limits handled above */
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoublmotor(%d motorDGain_oveRel_)=%f\n", axisNo_, value);
+    /* Limits handled above */
   } else if (function == pC_->motorClosedLoop_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParamotorClosedLoop_l_)=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorClosedLoop_l_)=%f\n", axisNo_, value);
 
 #ifdef motorPowerAutoOnOffString
   } else if (function == pC_->motorPowerAutoOnOff_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(momotorPowerAutoOnOff_%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorPowerAutoOnOff_%f\n", axisNo_, value);
 #endif
 #ifdef motorPowerOnDelayString
   } else if (function == pC_->motorPowerOnDelay_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorPowerOnDelay_)=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorPowerOnDelay_)=%f\n", axisNo_, value);
 #endif
 #ifdef motorPowerOffDelayString
   } else if (function == pC_->motorPowerOffDelay_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(mmotorPowerOffDelay_=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorPowerOffDelay_=%f\n", axisNo_, value);
 #endif
 #ifdef motorPowerOffFractionString
   } else if (function == pC_->motorPowerOffFraction_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motomotorPowerOffFraction_=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motomotorPowerOffFraction_=%f\n", axisNo_, value);
 #endif
 #ifdef motorPostMoveDelayString
   } else if (function == pC_->motorPostMoveDelay_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(mmotorPostMoveDelay_=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorPostMoveDelay_=%f\n", axisNo_, value);
 #endif
   } else if (function == pC_->motorStatus_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoublemotorStatus_veRel_)=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorStatus_)=%f\n", axisNo_, value);
   } else if (function == pC_->motorUpdateStatus_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorUpdateStatus_)=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorUpdateStatus_)=%f\n", axisNo_, value);
 #ifdef motorRecOffsetString
   } else if (function == pC_->motorRecOffset_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(motorRecOffset_)=%f\n", value);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d motorRecOffset_)=%f\n", axisNo_, value);
 #endif
-#ifdef HOME_VEL_TOString
-  } else if (function == pC_->TwinCATmotorHOME_VEL_TO_) {
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                  "setDoubleParam(TwinCATmotorHOME_VEL_TO_)=%f\n", value);
+#ifdef eemcuJVELString
+  } else if (function == pC_->eemcuJVEL_) {
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setDoubleParam(%d eemcuJVEL_)=%f\n", axisNo_, value);
 #endif
   }
 

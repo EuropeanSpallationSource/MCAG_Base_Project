@@ -1,5 +1,5 @@
 /*
-FILENAME...   TwinCATmotor.h
+FILENAME...   eemcu.h
 */
 
 #include "asynMotorController.h"
@@ -16,13 +16,14 @@ FILENAME...   TwinCATmotor.h
 #define motorRecResolutionString        "MOTOR_REC_RESOLUTION"
 #endif
 
-#define BERRORString                    "BERROR"
-#define NERRORIDString                  "NERRORID"
-#define HOME_PROCString                 "HOME_PROC"
-#define HOME_VEL_TOString               "HVEL_TO"
+#define eemcuErrString                  "Err"
+#define eemcuErrIdString                "ErrId"
+#define eemcuProcHomString              "ProcHom"
+#define eemcuErrRstString               "ErrRst"
+#define eemcuJVELString                 "JVEL_"
 
 extern "C" {
-  int TwinCATmotorCreateAxis(const char *TwinCATmotorName, int axisNo,
+  int eemcuCreateAxis(const char *eemcuName, int axisNo,
 			     int axisFlags, const char *axisOptionsStr);
 }
 
@@ -52,11 +53,11 @@ typedef struct {
   int bBusy;             /* 23 */
 } st_axis_status_type;
 
-class epicsShareClass TwinCATmotorAxis : public asynMotorAxis
+class epicsShareClass eemcuAxis : public asynMotorAxis
 {
 public:
   /* These are the methods we override from the base class */
-  TwinCATmotorAxis(class TwinCATmotorController *pC, int axisNo,
+  eemcuAxis(class eemcuController *pC, int axisNo,
 		   int axisFlags, const char *axisOptionsStr);
   void report(FILE *fp, int level);
   asynStatus move(double position, int relative, double min_velocity, double max_velocity, double acceleration);
@@ -68,7 +69,7 @@ public:
   asynStatus poll(bool *moving);
 
 private:
-  TwinCATmotorController *pC_;          /**< Pointer to the asynMotorController to which this axis belongs.
+  eemcuController *pC_;          /**< Pointer to the asynMotorController to which this axis belongs.
                                    *   Abbreviated because it is used very frequently */
   struct {
     double mres;
@@ -135,24 +136,24 @@ private:
   asynStatus setDoubleParam(int function, double value);
   asynStatus stopAxisInternal(const char *function_name, double acceleration);
 
-  friend class TwinCATmotorController;
+  friend class eemcuController;
 };
 
-class epicsShareClass TwinCATmotorController : public asynMotorController {
+class epicsShareClass eemcuController : public asynMotorController {
 public:
-  TwinCATmotorController(const char *portName, const char *TwinCATmotorPortName, int numAxes, double movingPollPeriod, double idlePollPeriod);
+  eemcuController(const char *portName, const char *eemcuPortName, int numAxes, double movingPollPeriod, double idlePollPeriod);
 
   void report(FILE *fp, int level);
   asynStatus writeReadOnErrorDisconnect(void);
-  TwinCATmotorAxis* getAxis(asynUser *pasynUser);
-  TwinCATmotorAxis* getAxis(int axisNo);
+  eemcuAxis* getAxis(asynUser *pasynUser);
+  eemcuAxis* getAxis(int axisNo);
   protected:
   void handleStatusChange(asynStatus status);
   asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
 
   /* First parameter */
-  int TwinCATmotorBError_;
-  int TwinCATmotorHomeProc_;
+  int eemcuErr_;
+  int eemcuProcHom_;
 
 #ifdef CREATE_MOTOR_REC_RESOLUTION
   int motorRecResolution_;
@@ -162,13 +163,14 @@ public:
 
   /* Add parameters here */
 
-  int TwinCATmotorHOME_VEL_TO_;
-  int TwinCATmotorNErrorId_;
+  int eemcuErrRst_;
+  int eemcuJVEL_;
+  int eemcuErrId_;
   /* Last parameter */
 
-  #define FIRST_VIRTUAL_PARAM TwinCATmotorBError_
-  #define LAST_VIRTUAL_PARAM TwinCATmotorNErrorId_
+  #define FIRST_VIRTUAL_PARAM eemcuErr_
+  #define LAST_VIRTUAL_PARAM eemcuErrId_
   #define NUM_VIRTUAL_MOTOR_PARAMS ((int) (&LAST_VIRTUAL_PARAM - &FIRST_VIRTUAL_PARAM + 1))
 
-  friend class TwinCATmotorAxis;
+  friend class eemcuAxis;
 };
