@@ -740,13 +740,24 @@ asynStatus eemcuAxis::poll(bool *moving)
   return asynError;
 }
 
+/** Set the motor closed loop status. 
+  * \param[in] closedLoop true = close loop, false = open looop. */
+asynStatus eemcuAxis::setClosedLoop(bool closedLoop)
+{
+  int value = closedLoop ? 1 : 0;
+  asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setClosedLoop(%d)=%d\n", axisNo_, value);
+  if (drvlocal.axisFlags & AMPLIFIER_ON_FLAG_USING_CNEN) {
+    return enableAmplifier(value);
+  }
+  return asynSuccess;
+}
+
 asynStatus eemcuAxis::setIntegerParam(int function, int value)
 {
   asynStatus status;
   if (function == pC_->motorClosedLoop_) {
-    if (drvlocal.axisFlags & AMPLIFIER_ON_FLAG_USING_CNEN) {
-      (void)enableAmplifier(value);
-    }
+    ; /* handled via setClosedLoop() */
 #ifdef motorRecDirectionString
   } else if (function == pC_->motorRecDirection_) {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
@@ -858,9 +869,6 @@ asynStatus eemcuAxis::setDoubleParam(int function, double value)
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
               "setDoublmotor(%d motorDGain_oveRel_)=%f\n", axisNo_, value);
     /* Limits handled above */
-  } else if (function == pC_->motorClosedLoop_) {
-    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-              "setDoubleParam(%d motorClosedLoop_l_)=%f\n", axisNo_, value);
 
 #ifdef motorPowerAutoOnOffString
   } else if (function == pC_->motorPowerAutoOnOff_) {
