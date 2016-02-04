@@ -24,7 +24,7 @@ FILENAME...   eemcu.h
 
 extern "C" {
   int eemcuCreateAxis(const char *eemcuName, int axisNo,
-			     int axisFlags, const char *axisOptionsStr);
+                      int axisFlags, const char *axisOptionsStr);
 }
 
 typedef struct {
@@ -58,7 +58,7 @@ class epicsShareClass eemcuAxis : public asynMotorAxis
 public:
   /* These are the methods we override from the base class */
   eemcuAxis(class eemcuController *pC, int axisNo,
-		   int axisFlags, const char *axisOptionsStr);
+            int axisFlags, const char *axisOptionsStr);
   void report(FILE *fp, int level);
   asynStatus move(double position, int relative, double min_velocity, double max_velocity, double acceleration);
   asynStatus moveVelocity(double min_velocity, double max_velocity, double acceleration);

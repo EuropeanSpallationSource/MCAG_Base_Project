@@ -196,9 +196,9 @@ static const iocshArg eemcuCreateAxisArg1 = {"Axis number", iocshArgInt};
 static const iocshArg eemcuCreateAxisArg2 = {"axisFlags", iocshArgInt};
 static const iocshArg eemcuCreateAxisArg3 = {"axisOptionsStr", iocshArgString};
 static const iocshArg * const eemcuCreateAxisArgs[] = {&eemcuCreateAxisArg0,
-							      &eemcuCreateAxisArg1,
-							      &eemcuCreateAxisArg2,
-							      &eemcuCreateAxisArg3};
+                                                       &eemcuCreateAxisArg1,
+                                                       &eemcuCreateAxisArg2,
+                                                       &eemcuCreateAxisArg3};
 static const iocshFuncDef eemcuCreateAxisDef = {"eemcuCreateAxis", 4, eemcuCreateAxisArgs};
 static void eemcuCreateAxisCallFunc(const iocshArgBuf *args)
 {

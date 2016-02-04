@@ -80,10 +80,10 @@ TELOBJS=\
 
 
 #First target, done when we run "make" (and CC is known)
-all: checkfortabs mdbin $(BIN)/simMotor$(EXE)
+all: checkwhitespace mdbin $(BIN)/simMotor$(EXE)
 
-checkfortabs:
-	./checkfortabs.sh
+checkwhitespace:
+	../checkws.sh
 	./today.sh today.h
 	./version.sh version.h
 
