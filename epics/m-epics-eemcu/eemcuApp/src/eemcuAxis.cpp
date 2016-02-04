@@ -740,7 +740,7 @@ asynStatus eemcuAxis::poll(bool *moving)
   return asynError;
 }
 
-/** Set the motor closed loop status. 
+/** Set the motor closed loop status
   * \param[in] closedLoop true = close loop, false = open looop. */
 asynStatus eemcuAxis::setClosedLoop(bool closedLoop)
 {

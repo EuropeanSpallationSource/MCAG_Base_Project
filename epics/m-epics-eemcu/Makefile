@@ -10,3 +10,6 @@ SOURCES = \
 TEMPLATES = \
   eemcuApp/Db/eemcu.template \
   eemcuApp/Db/eemcu-extra.template
+
+lint:
+	

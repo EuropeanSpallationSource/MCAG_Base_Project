@@ -28,7 +28,10 @@ makeCleanClean() {
   make -f  Makefile.epics clean || :
 }
 
-
+../checkws.sh || {
+  echo >&2 whitespace damage
+  exit 2
+}
 MOTORIP=127.0.0.1
 MOTORPORT=5024
 
