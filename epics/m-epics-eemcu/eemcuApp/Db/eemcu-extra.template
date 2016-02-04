@@ -22,7 +22,7 @@ record(longout,"$(P)$(R)ProcHom") {
 
 record(longout,"$(P)$(R)ErrRst") {
     field(DESC, "Error Reset")
-    field(VAL, "$(ERRRST)")
+    field(VAL,  0)
     field(DTYP, "asynInt32")
     field(PINI, "YES")
     field(OUT,"@asyn($(PORT),$(ADDR))ErrRst")
