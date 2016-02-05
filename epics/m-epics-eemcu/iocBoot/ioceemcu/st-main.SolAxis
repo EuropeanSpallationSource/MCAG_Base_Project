@@ -41,3 +41,7 @@ eemcuCreateAxis("MCU1", "1", "6", "encoder=ADSPORT=501/.ADR.16#3040010,16#800000
 ##eemcuCreateAxis("MCU1", "3")
 ##eemcuCreateAxis("MCU1", "4")
 
+cd eemcuApp/Db
+dbLoadTemplate("SolAxis.substitutions")
+dbLoadTemplate("SolAxis-extra.substitutions")
+cd ${TOP}
