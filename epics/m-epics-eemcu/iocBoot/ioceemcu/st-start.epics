@@ -11,7 +11,3 @@ cd ${TOP}
 dbLoadDatabase "dbd/eemcu.dbd"
 eemcu_registerRecordDeviceDriver pdbbase
 
-## Load record instances
-dbLoadRecords("db/eemcu.db")
-dbLoadRecords("db/eemcu-extra.db")
-

@@ -35,6 +35,24 @@ makeCleanClean() {
 MOTORIP=127.0.0.1
 MOTORPORT=5024
 
+case "$1" in
+  TwoAxis)
+  MOTORCFG=.TwoAxis
+  shift
+  ;;
+  SolAxis)
+  MOTORCFG=.SolAxis
+  shift
+  ;;
+  *)
+  MOTORCFG=
+  echo >&2 $0 "[SolAxis|TwoAxis] <ip>[:port]"
+  exit 1
+  ;;
+esac
+export MOTORCFG
+echo MOTORCFG=$MOTORCFG
+
 if test -n "$1"; then
   # allow doit.sh host:port
   PORT=${1##*:}
@@ -44,15 +62,7 @@ if test -n "$1"; then
     MOTORPORT=$PORT
   fi
   echo HOST=$HOST MOTORPORT=$MOTORPORT
-  if which net >/dev/null; then
-      MOTORIP=$(net lookup $HOST) || {
-	  echo >&2 "Can not lookup $1"
-	  MOTORIP=$HOST
-      }
-  else
-      MOTORIP=$HOST
-  fi
-
+  MOTORIP=$HOST
   echo MOTORIP=$MOTORIP
 fi
 export MOTORIP MOTORPORT
@@ -109,7 +119,7 @@ elif test -n "$EPICS_BASES_PATH"; then
    fi
    EPICS_EEE=y
    export EPICS_EEE make_clean_uninstall
-else 
+else
    echo >&2 Not found: $EPICS_BASE/../modules/motor/[dD]b
    echo >&2 Unsupported EPICS_BASE:$EPICS_BASE
   exit 1
@@ -153,14 +163,17 @@ fi
   stcmddst=./st.cmd.$EPICS_HOST_ARCH &&
   cd ./iocBoot/ioc${APPXX}/ &&
   if test "x$EPICS_EEE" = "xy"; then
-    stcmddst=./st.cmd.EEE &&
+    stcmddst=./st.cmd${MOTORCFG}.EEE &&
     rm -f $stcmddst &&
-    cat st-start.EEE st-main st-end.EEE |  \
+    cat st-start.EEE st-main${MOTORCFG} |  \
       sed                                        \
       -e "s/__EPICS_HOST_ARCH/$EPICS_HOST_ARCH/" \
       -e "s/eemcu,USER/eemcu,$USER/" \
-      -e "s/127.0.0.1:5024/$MOTORIP:$MOTORPORT/" \
-      | grep -v '^  *#' >$stcmddst &&
+      -e "s/127.0.0.1:5024/$MOTORIP:$MOTORPORT/" |
+    grep -v '^  *#' >$stcmddst || {
+      echo >&2 can not create stcmddst $stcmddst
+      exit 1
+    }
     chmod -w $stcmddst &&
     chmod +x $stcmddst &&
     cmd=$(echo iocsh $stcmddst) &&
@@ -187,7 +200,7 @@ EOF
       -e "s!__EPICS_BASE!$EPICS_BASE!" \
       -e "s/__EPICS_HOST_ARCH/$EPICS_HOST_ARCH/"  &&
     rm -f $stcmddst &&
-    cat st-start.epics st-main st-end.epics |  \
+    cat st-start.epics st-main${MOTORCFG} st-end.epics |  \
       sed                                        \
       -e "s/__EPICS_HOST_ARCH/$EPICS_HOST_ARCH/" \
       -e "s/127.0.0.1:5024/$MOTORIP:$MOTORPORT/" \
