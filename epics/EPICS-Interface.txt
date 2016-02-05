@@ -1,0 +1,98 @@
+The current example database uses the EPICS motor record (MR).
+
+http://aps.anl.gov/bcda/synApps/motor/
+
+Our driver is a model 3 driver, which allows other records
+to be used beside the motor record.
+
+The demo example uses the following records:
+IOC:m1-Pos-RB  - Input, position Readback, in EQU
+IOC:m1-JVEL_   - Copy of MR.JVEL
+IOC:m1-OFF_    - Copy of MR.OFF
+IOC:m1-MRES_   - Copy of MR.MRES
+IOC:m1-DIR_    - Copy of MR.DIR
+IOC:m1-Err     - Input, The axis is in error state.
+                 Read out the error id from m1-ErrId. After that,
+                 make a write to IOC:m1-ErrId to clear the error.
+IOC:m1-ErrId   - Input, Error ID reported from controller
+IOC:m1-ErrRst  - output. Writing to this field makes a soft reset and
+                 m1-Err shoud go to 0,
+IOC:m1-ProcHom - Homing procedure, see Documentation/Homing_Procedures.pdf
+
+
+Fields that are used from the motorrecord:
+- Homing
+  HOMF and HOMR have the same function, the motor is homed and stays close to the
+  home position.
+  First the motor moves with JVEL towards e.g. the limit switch.
+  Once reached, the motor reverts the direction, ans searches for the home sensor.
+  This is done with HVEL.
+
+- Jogging
+  JOGF, JOGR is supported, JVEL is used.
+
+- Soft limits
+  Soft limits from MR are send to the motion controller.
+  
+- MRES
+  The MR counts internally in steps,
+  and the postion is rounded to the nearest step.
+  Movements where the "destination step" is the same as "current step"
+  are not done.
+  In other words, when you know the (micro) step size of your motor, fill it in.
+  Otherwise set it to a small value, like 1 micrometer.
+  
+- CNEN
+  Can be used to switch the amplifier on or off, when the driver is configured
+  to do so
+  eemcuCreateAxis("MCU1", "1", "1", "") # amplifier always on
+  eemcuCreateAxis("MCU1", "1", "2", "") # (obsolete) amplifier on when homing 
+  eemcuCreateAxis("MCU1", "1", "4", "") # amplifier is switch on/off with CNEN
+
+--------------------------------
+- Status bits in MSTA
+  DIRECTION: last raw direction; (0:Negative, 1:Positive)
+  - derived from the last movement
+
+  DONE: motion is complete.
+  - supported
+
+  PLUS_LS: plus limit switch has been hit.
+  - supported
+
+  HOMELS: state of the home limit switch.
+  - supported
+
+  Unused
+  - unsused
+
+  POSITION: closed-loop position control is enabled.
+  - Read back if the amplifier is enabled
+  
+  SLIP_STALL: Slip/Stall detected (eg. fatal following error)
+  - Follows Err
+  
+  HOME: if at home position.
+  - supported (?)
+
+  PRESENT: encoder is present.
+  - Not supported, Typically the encoder is handled inside the MCU
+
+  PROBLEM: driver stopped polling, or hardware problem
+  - not used (as the MR would send us STOP commands,
+              until the error goes away. We need to do ErrRst)
+
+  MOVING: non-zero velocity present.
+  - supported
+
+  GAIN_SUPPORT: motor supports closed-loop position control.
+  - supported, indicates the the amplifier can be turned on with CNEN
+
+  COMM_ERR: Controller communication error.
+  - supported (Note: MR puts record into "COMM INVALID"
+
+  MINUS_LS: minus limit switch has been hit.
+  - supported
+
+  HOMED: the motor has been homed.
+  - supported
