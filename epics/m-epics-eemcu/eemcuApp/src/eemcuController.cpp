@@ -89,12 +89,13 @@ asynStatus eemcuController::writeReadOnErrorDisconnect(void)
                                        inString_, sizeof(inString_),
                                        DEFAULT_CONTROLLER_TIMEOUT,
                                        &nwrite, &nread, &eomReason);
-  if (status == asynTimeout) {
+  if ((status == asynTimeout) ||
+      (!nread && (eomReason & ASYN_EOM_END)))
+
+{
+#if 1
     asynInterface *pasynInterface = NULL;
     asynCommon     *pasynCommon = NULL;
-    asynPrint(pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
-              "out=%s status=asynTimeout (%d)\n",
-              outString_, (int)status);
     pasynInterface = pasynManager->findInterface(pasynUserController_,
                                                  asynCommonType,
                                                  0 /* FALSE */);
@@ -102,7 +103,6 @@ asynStatus eemcuController::writeReadOnErrorDisconnect(void)
       pasynCommon = (asynCommon *)pasynInterface->pinterface;
       status = pasynCommon->disconnect(pasynInterface->drvPvt,
                                        pasynUserController_);
-      handleStatusChange(asynError);
       if (status != asynSuccess) {
         asynPrint(pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
                   "out=%s status=%s (%d)\n",
@@ -113,6 +113,12 @@ asynStatus eemcuController::writeReadOnErrorDisconnect(void)
                 "pasynInterface=%p pasynCommon=%p\n",
                 pasynInterface, pasynCommon);
     }
+#endif
+    asynPrint(pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
+              "out=%s nread=%lu status=%s (%d)\n",
+              outString_,(unsigned long)nread,
+              pasynManager->strStatus(status), status);
+    handleStatusChange(asynError);
     return asynError; /* TimeOut -> Error */
   }
   return status;

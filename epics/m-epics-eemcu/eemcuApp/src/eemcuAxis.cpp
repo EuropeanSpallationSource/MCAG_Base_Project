@@ -88,8 +88,8 @@ extern "C" int eemcuCreateAxis(const char *eemcuName, int axisNo,
 void eemcuAxis::handleStatusChange(asynStatus newStatus)
 {
   asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
-            "eemcuAxis::handleStatusChange status=%s (%d)\n",
-            pasynManager->strStatus(newStatus), (int)newStatus);
+            "eemcuAxis::handleStatusChange(%d) status=%s (%d)\n",
+            axisNo_, pasynManager->strStatus(newStatus), (int)newStatus);
   if (newStatus != asynSuccess) {
     memset(&drvlocal.dirty, 0xFF, sizeof(drvlocal.dirty));
   } else {
@@ -577,7 +577,7 @@ asynStatus eemcuAxis::pollAll(bool *moving, st_axis_status_type *pst_axis_status
 
   /* Read the complete Axis status */
   sprintf(pC_->outString_, "Main.M%d.stAxisStatus?", axisNo_);
-  comStatus = pC_->writeReadController();
+  comStatus = pC_->writeReadOnErrorDisconnect();
   if (comStatus) return comStatus;
   drvlocal.dirty.stAxisStatus_V00 = 0;
   nvals = sscanf(pC_->inString_,
@@ -720,7 +720,7 @@ asynStatus eemcuAxis::poll(bool *moving)
 
   if (drvlocal.oldMotorStatusProblem) {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
-              "reconnected\n");
+              "reconnected(%d)\n", axisNo_);
     drvlocal.oldMotorStatusProblem = 0;
   }
   //setIntegerParam(pC_->motorStatusProblem_, 0);
@@ -731,7 +731,7 @@ asynStatus eemcuAxis::poll(bool *moving)
   memset(&drvlocal.dirty, 0xFF, sizeof(drvlocal.dirty));
   if (!drvlocal.oldMotorStatusProblem) {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
-              "Communication error\n");
+              "Communication error(%d)\n", axisNo_);
   }
   drvlocal.dirty.reportDisconnect = 0;
   drvlocal.oldMotorStatusProblem = 1;
