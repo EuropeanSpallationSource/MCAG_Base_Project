@@ -1,7 +1,8 @@
 #ifndef MOTOR_H
 #define MOTOR_H
 
-#define MAX_AXES 8
+/* Axis 0 is not used, we use 1..8 */
+#define MAX_AXES 9
 #define AXIS_CHECK_RETURN(_axis) {init_axis(_axis); if (((_axis) <= 0) || ((_axis) >=MAX_AXES)) return;}
 #define AXIS_CHECK_RETURN_ZERO(_axis) {init_axis(_axis); if (((_axis) <= 0) || ((_axis) >=MAX_AXES)) return 0;}
 #define AXIS_CHECK_RETURN_ERROR(_axis) {init_axis(_axis); if (((_axis) <= 0) || ((_axis) >=MAX_AXES)) return (-1);}
