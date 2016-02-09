@@ -40,7 +40,7 @@ static void init_axis(int axis_no)
     double valueHigh = 14.0 * ReverseMRES;
     hw_motor_init(axis_no);
     setMotorReverseERES(axis_no, MRES/ERES);
-    setMotorParkingPosition(axis_no, -64 * ReverseMRES); /* steps */
+    setMotorParkingPosition(axis_no, (-64 + axis_no/10.0) * ReverseMRES); /* steps */
     setMaxHomeVelocityAbs(axis_no, 5 * ReverseMRES);
     setLowHardLimitPos(axis_no,  valueLow);
     setHighHardLimitPos(axis_no, valueHigh);
@@ -93,8 +93,11 @@ static int motorHandleADS_ADR_putInt(unsigned adsport,
       return 0;
     }
   }
-  if (indexGroup == 0x4001 && indexOffset == 0x15) {
-    return 0; /* Monitor */
+  if (indexGroup >= 0x4000 && indexGroup < 0x5000) {
+    //int motor_axis_no = (int)indexGroup - 0x4000;
+    if (indexOffset == 0x15) {
+      return 0; /* Monitor */
+    }
   }
 
   RETURN_ERROR_OR_DIE(__LINE__, "%s/%s:%d indexGroup=0x%x indexOffset=0x%x",
