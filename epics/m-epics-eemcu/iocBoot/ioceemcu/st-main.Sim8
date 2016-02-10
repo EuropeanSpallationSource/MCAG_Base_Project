@@ -1,0 +1,70 @@
+## Configure devices
+drvAsynIPPortConfigure("MC_CPU1","127.0.0.1:5024",0,0,0)
+asynOctetSetOutputEos("MC_CPU1", -1, ";\n")
+asynOctetSetInputEos("MC_CPU1", -1, ";\n")
+eemcuCreateController("MCU1", "MC_CPU1", "32", "200", "1000")
+  #define ASYN_TRACE_ERROR     0x0001
+  #define ASYN_TRACEIO_DEVICE  0x0002
+  #define ASYN_TRACEIO_FILTER  0x0004
+  #define ASYN_TRACEIO_DRIVER  0x0008
+  #define ASYN_TRACE_FLOW      0x0010
+  #define ASYN_TRACE_WARNING   0x0020
+  #define ASYN_TRACE_INFO      0x0040
+asynSetTraceMask("MC_CPU1", -1, 0x41)
+##asynSetTraceMask("MC_CPU1", -1, 0x48)
+
+  #define ASYN_TRACEIO_NODATA 0x0000
+  #define ASYN_TRACEIO_ASCII  0x0001
+  #define ASYN_TRACEIO_ESCAPE 0x0002
+  #define ASYN_TRACEIO_HEX    0x0004
+asynSetTraceIOMask("MC_CPU1", -1, 2)
+##asynSetTraceIOMask("MC_CPU1", -1, 6)
+
+  #define ASYN_TRACEINFO_TIME 0x0001
+  #define ASYN_TRACEINFO_PORT 0x0002
+  #define ASYN_TRACEINFO_SOURCE 0x0004
+  #define ASYN_TRACEINFO_THREAD 0x0008
+asynSetTraceInfoMask("MC_CPU1", -1, 15)
+
+#Parameter 3 eemcuCreateAxis
+#define AMPLIFIER_ON_FLAG_CREATE_AXIS  (1)
+#define AMPLIFIER_ON_FLAG_WHEN_HOMING  (1<<1)
+#define AMPLIFIER_ON_FLAG_USING_CNEN   (1<<2)
+## ADSPORT=501/.ADR.16#5001,16#2,8,5?;
+#eemcuCreateAxis("MCU1", "1", "2", "ADSPORT=501/.ADR.16#5181,16#2,8,5")
+
+eemcuCreateAxis("MCU1", "1", "6", "")
+eemcuCreateAxis("MCU1", "2", "6", "")
+eemcuCreateAxis("MCU1", "3", "6", "")
+eemcuCreateAxis("MCU1", "4", "6", "")
+eemcuCreateAxis("MCU1", "5", "6", "")
+eemcuCreateAxis("MCU1", "6", "6", "")
+eemcuCreateAxis("MCU1", "7", "6", "")
+eemcuCreateAxis("MCU1", "8", "6", "")
+
+#eemcuCreateAxis("MCU1", "1", "6", "")
+##eemcuCreateAxis("MCU1", "2")
+##eemcuCreateAxis("MCU1", "3")
+##eemcuCreateAxis("MCU1", "4")
+
+cd eemcuApp/Db
+dbLoadTemplate(Sim8-m1.substitutions)
+dbLoadTemplate(Sim8-extra-m1.substitutions)
+dbLoadTemplate(Sim8-m2.substitutions)
+dbLoadTemplate(Sim8-extra-m2.substitutions)
+
+dbLoadTemplate(Sim8-m3.substitutions)
+dbLoadTemplate(Sim8-extra-m3.substitutions)
+dbLoadTemplate(Sim8-m4.substitutions)
+dbLoadTemplate(Sim8-extra-m4.substitutions)
+
+dbLoadTemplate(Sim8-m5.substitutions)
+dbLoadTemplate(Sim8-extra-m5.substitutions)
+dbLoadTemplate(Sim8-m6.substitutions)
+dbLoadTemplate(Sim8-extra-m6.substitutions)
+
+dbLoadTemplate(Sim8-m7.substitutions)
+dbLoadTemplate(Sim8-extra-m7.substitutions)
+dbLoadTemplate(Sim8-m8.substitutions)
+dbLoadTemplate(Sim8-extra-m8.substitutions)
+cd ${TOP}

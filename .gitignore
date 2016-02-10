@@ -1,9 +1,8 @@
+epics-for-Motion/
 _Boot/
 _CompileInfo/
 _Libraries/
-epics/installed-epics/
-epics/.epics.*
-
+.epics.*
 *.bak
 *.~u
 *.pyc

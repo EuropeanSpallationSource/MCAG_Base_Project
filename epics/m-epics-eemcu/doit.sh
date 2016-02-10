@@ -5,7 +5,7 @@ export APPXX
 uname_s=$(uname -s 2>/dev/null || echo unknown)
 uname_m=$(uname -m 2>/dev/null || echo unknown)
 
-INSTALLED_EPICS=../.epics.$(hostname).$uname_s.$uname_m
+INSTALLED_EPICS=../../../.epics.$(hostname).$uname_s.$uname_m
 
 if test -r $INSTALLED_EPICS; then
   echo INSTALLED_EPICS=$INSTALLED_EPICS
@@ -44,9 +44,13 @@ case "$1" in
   MOTORCFG=.SolAxis
   shift
   ;;
+  Sim8)
+  MOTORCFG=.Sim8
+  shift
+  ;;
   *)
   MOTORCFG=
-  echo >&2 $0 "[SolAxis|TwoAxis] <ip>[:port]"
+  echo >&2 $0 " SolAxis|TwoAxis|Sim8 <ip>[:port]"
   exit 1
   ;;
 esac
