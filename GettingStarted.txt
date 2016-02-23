@@ -46,7 +46,7 @@ Some notes how to get started.
  
   #Window 2, run the EPICS IOC
   cd epics/m-epics-eemcu
-  ./doit.sh
+  ./doit.sh SolAxis IP:PORT
 
   #Window 3, run the test script
   cd epics/testScripts
