@@ -37,6 +37,11 @@ void   setHighSoftLimitPos(int axis_no, double value);
 void   enableHighSoftLimit(int axis_no, int value);
 void   setHighHardLimitPos(int axis_no, double value);
 
+double getMRES_23(int axis_no);
+int    setMRES_23(int axis_no, double value);
+double getMRES_24(int axis_no);
+int    setMRES_24(int axis_no, double value);
+
 double getMotorPos(int axis_no);
 double getEncoderPos(int axis_no);
 
