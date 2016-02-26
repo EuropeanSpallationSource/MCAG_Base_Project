@@ -112,7 +112,24 @@ static int motorHandleADS_ADR_getFloat(unsigned adsport,
                                        unsigned indexOffset,
                                        double *fValue)
 {
-  return __LINE__;
+  if (indexGroup >= 0x5000 && indexGroup < 0x6000) {
+    int motor_axis_no = (int)indexGroup - 0x5000;
+    switch(indexOffset) {
+      case 0xD:
+        *fValue = getLowSoftLimitPos(motor_axis_no);
+        return 0;
+      case 0xE:
+        *fValue = getHighSoftLimitPos(motor_axis_no);
+        return 0;
+      case 0x23:
+        *fValue = getMRES_23(motor_axis_no);
+        return 0;
+      case 0x24:
+        *fValue = getMRES_24(motor_axis_no);
+        return 0;
+    }
+  }
+  return -1;
 }
 
 /*
@@ -126,13 +143,17 @@ static int motorHandleADS_ADR_putFloat(unsigned adsport,
 {
   if (indexGroup >= 0x5000 && indexGroup < 0x6000) {
     int motor_axis_no = (int)indexGroup - 0x5000;
-    if (indexOffset == 0xD) {
-      setLowSoftLimitPos(motor_axis_no, fValue);
-      return 0;
-    }
-    if (indexOffset == 0xE) {
-      setHighSoftLimitPos(motor_axis_no, fValue);
-      return 0;
+    switch(indexOffset) {
+      case 0xD:
+        setLowSoftLimitPos(motor_axis_no, fValue);
+        return 0;
+      case 0xE:
+        setHighSoftLimitPos(motor_axis_no, fValue);
+        return 0;
+      case 0x23:
+        return setMRES_23(motor_axis_no, fValue);
+      case 0x24:
+        return setMRES_24(motor_axis_no, fValue);
     }
   }
   if (indexGroup >= 0x4000 && indexGroup < 0x5000) {
@@ -224,7 +245,7 @@ static int motorHandleADS_ADR(const char *arg)
                                           indexOffset,
                                           &fValue);
         if (res) return res;
-        cmd_buf_printf("%f", fValue);
+        cmd_buf_printf("%g", fValue);
         return -1;
       }
         break;
@@ -341,23 +362,23 @@ static void motorHandleOneArg(const char *myarg_1)
   }
   /* fAcceleration? */
   if (0 == strcmp(myarg_1, "fAcceleration?")) {
-    cmd_buf_printf("%f", cmd_Motor_cmd[motor_axis_no].acceleration);
+    cmd_buf_printf("%g", cmd_Motor_cmd[motor_axis_no].acceleration);
     return;
   }
   /* fActPosition? */
   if (0 == strcmp(myarg_1, "fActPosition?")) {
-    cmd_buf_printf("%f", getMotorPos(motor_axis_no));
+    cmd_buf_printf("%g", getMotorPos(motor_axis_no));
     return;
   }
   /* fActVelocity? */
   if (0 == strcmp(myarg_1, "fActVelocity?")) {
-    cmd_buf_printf("%f", getMotorVelocity(motor_axis_no));
+    cmd_buf_printf("%g", getMotorVelocity(motor_axis_no));
     return;
   }
   /* fPosition? */
   if (0 == strcmp(myarg_1, "fPosition?")) {
     /* The "set" value */
-    cmd_buf_printf("%f", cmd_Motor_cmd[motor_axis_no].position);
+    cmd_buf_printf("%g", cmd_Motor_cmd[motor_axis_no].position);
     return;
   }
   /* nCommand? */
@@ -400,8 +421,8 @@ static void motorHandleOneArg(const char *myarg_1)
     int bBusy = isMotorMoving(motor_axis_no);
 
     cmd_buf_printf("Main.M%d.stAxisStatus="
-                   "%d,%d,%d,%u,%u,%f,%f,%f,%f,%d,"
-                   "%d,%d,%d,%f,%d,%d,%d,%u,%f,%f,%f,%d,%d",
+                   "%d,%d,%d,%u,%u,%g,%g,%g,%g,%d,"
+                   "%d,%d,%d,%g,%d,%d,%d,%u,%g,%g,%g,%d,%d",
                    motor_axis_no,
                    bEnable,        /*  1 */
                    bReset,         /*  2 */
@@ -533,7 +554,7 @@ static void motorHandleOneArg(const char *myarg_1)
                                cmd_Motor_cmd[motor_axis_no].acceleration);
             cmd_buf_printf("OK");
           } else {
-            cmd_buf_printf("Error : %d %f %f",
+            cmd_buf_printf("Error : %d %g %g",
                            70000,
                            cmd_Motor_cmd[motor_axis_no].homeVeloTowardsHomeSensor,
                            cmd_Motor_cmd[motor_axis_no].homeVeloFromHomeSensor);

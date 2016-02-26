@@ -78,19 +78,22 @@ private:
     double oldPosition;
     const char *externalEncoderStr;
     int axisFlags;
-    int oldMotorStatusProblem;
     int oldNowMoving;
     int old_bError;
     int old_nErrorId;
     unsigned int waitNumPollsBeforeReady;
+    int mustStop;
     /* Which values have changed in the EPICS IOC, but are not updated in the
        motion controller */
     struct {
       int          nMotionAxisID;     /* Needed for ADR commands */
+      unsigned int mres             :1;
       unsigned int motorLimits      :1;
-      unsigned int mustStop         :1;
-      unsigned int reportDisconnect :1;
+      //unsigned int mustStop         :1;
       unsigned int stAxisStatus_V00 :1;
+      unsigned int oldStatusDisconnected : 1;
+      unsigned int initialUpdate :1;
+
     }  dirty;
     /* Which values have been defined: at startup none */
     struct {
@@ -102,7 +105,11 @@ private:
     }  supported;
   } drvlocal;
 
-  void handleStatusChange(asynStatus status);
+  asynStatus handleDisconnect(void);
+  asynStatus handleConnect(void);
+  asynStatus initialUpdate(void);
+
+  asynStatus handleStatusChange(asynStatus status);
 
   asynStatus writeReadACK(void);
   asynStatus setValueOnAxis(const char* var, int value);
@@ -120,6 +127,11 @@ private:
                                unsigned indexOffset,
                                double value);
 
+  asynStatus getADRValueFromAxis(unsigned adsport,
+                                 unsigned indexGroup,
+                                 unsigned indexOffset,
+                                 double *value);
+
   asynStatus getValueFromAxis(const char* var, int *value);
   asynStatus getValueFromAxis(const char* var, double *value);
   asynStatus getValueFromController(const char* var, double *value);
@@ -128,7 +140,8 @@ private:
   asynStatus setMotorLowLimitOnAxis(void);
 
   asynStatus setMotorLimitsOnAxisIfDefined(void);
-  asynStatus updateSoftLimitsIfDirty(int);
+  asynStatus setMRESOnAxisIfDefinedAndDirty(void);
+  asynStatus updateMresSoftLimitsIfDirty(int);
   asynStatus resetAxis(void);
   asynStatus enableAmplifier(int);
   asynStatus sendVelocityAndAccelExecute(double maxVelocity, double acceleration);
