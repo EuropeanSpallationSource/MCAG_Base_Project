@@ -136,9 +136,6 @@ private:
   asynStatus getValueFromAxis(const char* var, double *value);
   asynStatus getValueFromController(const char* var, double *value);
 
-  asynStatus setMotorHighLimitOnAxis(void);
-  asynStatus setMotorLowLimitOnAxis(void);
-
   asynStatus setMotorLimitsOnAxisIfDefined(void);
   asynStatus setMRESOnAxisIfDefinedAndDirty(void);
   asynStatus updateMresSoftLimitsIfDirty(int);
