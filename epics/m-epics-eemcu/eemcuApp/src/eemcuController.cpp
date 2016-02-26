@@ -130,7 +130,7 @@ void eemcuController::handleStatusChange(asynStatus status)
   for (i=0; i<numAxes_; i++) {
     eemcuAxis *pAxis=getAxis(i);
     if (!pAxis) continue;
-    pAxis->handleStatusChange(status);
+    pAxis->handleDisconnect();
   }
 }
 
