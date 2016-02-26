@@ -496,37 +496,6 @@ asynStatus eemcuAxis::moveVelocity(double minVelocity, double maxVelocity, doubl
 }
 
 
-/** Set the high soft-limit on an axis
- *
- */
-asynStatus eemcuAxis::setMotorHighLimitOnAxis(void)
-{
-  asynStatus status = asynSuccess;
-  int enable = drvlocal.defined.motorHighLimit;
-  if (drvlocal.motorHighLimit <= drvlocal.motorLowLimit) enable = 0;
-  if (enable && (status == asynSuccess)) {
-    status = setADRValueOnAxis(501, 0x5000, 0xE, drvlocal.motorHighLimit * drvlocal.mres);
-  }
-  if (status == asynSuccess) status = setADRValueOnAxis(501, 0x5000, 0xC, enable);
-  return status;
-}
-
-
-/** Set the low soft-limit on an axis
- *
- */
-asynStatus eemcuAxis::setMotorLowLimitOnAxis(void)
-{
-  asynStatus status = asynSuccess;
-  int enable = drvlocal.defined.motorLowLimit;
-  if (drvlocal.motorHighLimit <= drvlocal.motorLowLimit) enable = 0;
-  if (enable && (status == asynSuccess)) {
-    status = setADRValueOnAxis(501, 0x5000, 0xD, drvlocal.motorLowLimit * drvlocal.mres);
-  }
-  if (status == asynSuccess) status = setADRValueOnAxis(501, 0x5000, 0xB, enable);
-  return status;
-}
-
 asynStatus eemcuAxis::setMRESOnAxisIfDefinedAndDirty(void)
 {
   asynStatus status = asynSuccess;
@@ -570,13 +539,39 @@ asynStatus eemcuAxis::setMRESOnAxisIfDefinedAndDirty(void)
 asynStatus eemcuAxis::setMotorLimitsOnAxisIfDefined(void)
 {
   asynStatus status = asynError;
-  asynPrint(pC_->pasynUserController_, ASYN_TRACEIO_DRIVER, "\n");
   if (drvlocal.defined.motorLowLimit &&
-      drvlocal.defined.motorHighLimit &&
-      drvlocal.mres &&
-      setMotorHighLimitOnAxis() == asynSuccess &&
-      setMotorLowLimitOnAxis() == asynSuccess) {
-    status = asynSuccess;
+      drvlocal.defined.motorHighLimit && drvlocal.mres) {
+    unsigned int adsport = 501;
+    unsigned int indexGroupA;
+    int enable;
+    int axisID = getMotionAxisID();
+    if (axisID < 0) return asynError;
+    indexGroupA = 0x5000 + (unsigned int)axisID;
+    enable = drvlocal.motorLowLimit < drvlocal.motorHighLimit ? 1 : 0;
+    snprintf(pC_->outString_, sizeof(pC_->outString_),
+             "ADSPORT=%u/.ADR.16#%X,16#%X,8,5=%g;"
+             "ADSPORT=%u/.ADR.16#%X,16#%X,8,5=%g;"
+             "ADSPORT=%u/.ADR.16#%X,16#%X,2,2=%d;"
+             "ADSPORT=%u/.ADR.16#%X,16#%X,2,2=%d",
+             adsport, indexGroupA, 0xD, drvlocal.motorLowLimit * drvlocal.mres,
+             adsport, indexGroupA, 0xE, drvlocal.motorHighLimit * drvlocal.mres,
+             adsport, indexGroupA, 0XB, enable,
+             adsport, indexGroupA, 0XC, enable);
+    status = pC_->writeReadOnErrorDisconnect();
+    switch (status) {
+    case asynError:
+      break;
+    case asynSuccess:
+      if (strcmp(pC_->inString_, "OK;OK;OK;OK")) {
+        status = asynError;
+      }
+    default:
+      break;
+    }
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
+              "out=%s in=%s return=%s (%d)\n",
+              pC_->outString_, pC_->inString_,
+              pasynManager->strStatus(status), (int)status);
   }
   drvlocal.dirty.motorLimits =  (status != asynSuccess);
   return status;
