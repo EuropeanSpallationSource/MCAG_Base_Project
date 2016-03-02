@@ -65,6 +65,7 @@ def jogDirection(motor, tc_no, direction, jogging_velocity, acceleration):
 class Test(unittest.TestCase):
     MSTA_BIT_HOMED    = 1 << (15 -1)
     MSTA_BIT_MINUS_LS = 1 << (14 -1)
+    MSTA_BIT_PROBLEM  = 1 << (10 -1)
     MSTA_BIT_PLUS_LS  = 1 << (3 -1)
 
     m1 = epics.Motor(os.getenv("TESTEDMOTORAXIS"))
@@ -117,6 +118,7 @@ class Test(unittest.TestCase):
             self.m1.put('DHLM', old_high_limit)
 
             self.assertEqual(0, lvio, 'LVIO == 0')
+            self.assertEqual(0, msta & self.MSTA_BIT_PROBLEM,       'No Error MSTA.Problem at MINUS_LS')
             self.assertNotEqual(0, msta & self.MSTA_BIT_MINUS_LS,   'Minus hard limit switch active')
             self.assertEqual(0, msta & self.MSTA_BIT_PLUS_LS,       'Plus hard limit switch not active')
 

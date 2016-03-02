@@ -75,6 +75,7 @@ def moveDialPosition(motor, tc_no, destination, velocity, acceleration):
 class Test(unittest.TestCase):
     MSTA_BIT_HOMED    = 1 << (15 -1)
     MSTA_BIT_MINUS_LS = 1 << (14 -1)
+    MSTA_BIT_PROBLEM  = 1 << (10 -1)
     MSTA_BIT_PLUS_LS  = 1 << (3 -1)
 
     m1 = epics.Motor(os.getenv("TESTEDMOTORAXIS"))
@@ -128,6 +129,7 @@ class Test(unittest.TestCase):
             lvio = int(self.m1.get('LVIO'))
             msta = int(self.m1.get('MSTA'))
 
+            self.assertEqual(0, msta & self.MSTA_BIT_PROBLEM,  'No MSTA.Problem JOGF')
             self.assertEqual(0, msta & self.MSTA_BIT_MINUS_LS, 'Minus hard limit not reached JOGF')
             self.assertEqual(0, msta & self.MSTA_BIT_PLUS_LS,  'Plus hard limit not reached JOGF')
             self.assertEqual(1, lvio, 'LVIO == 1 JOGF')
@@ -160,6 +162,7 @@ class Test(unittest.TestCase):
             lvio = int(self.m1.get('LVIO'))
             msta = int(self.m1.get('MSTA'))
 
+            self.assertEqual(0, msta & self.MSTA_BIT_PROBLEM,  'No Error MSTA.Problem JOGF DIR')
             self.assertEqual(0, msta & self.MSTA_BIT_MINUS_LS, 'Minus hard limit not reached JOGF DIR')
             self.assertEqual(0, msta & self.MSTA_BIT_PLUS_LS,  'Plus hard limit not reached JOGF DIR')
             ### commit  4efe15e76cefdc060e14dbc3 needed self.assertEqual(1, lvio, 'LVIO == 1 JOGF')
