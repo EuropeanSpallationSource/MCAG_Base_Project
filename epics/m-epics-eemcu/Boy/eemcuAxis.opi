@@ -196,7 +196,7 @@ $(pv_value)</tooltip>
     <wuid>347e5b21:145028f13a8:-7f97</wuid>
     <next_focus>0</next_focus>
     <scripts />
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
     <scale_options>
       <width_scalable>true</width_scalable>
       <height_scalable>true</height_scalable>
@@ -816,7 +816,7 @@ $(pv_value)</tooltip>
     <wuid>-2b5285de:145db409069:-7a93</wuid>
     <next_focus>0</next_focus>
     <scripts />
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
     <scale_options>
       <width_scalable>true</width_scalable>
       <height_scalable>true</height_scalable>
@@ -1059,7 +1059,7 @@ $(pv_value)</tooltip>
       <color name="Minor" red="255" green="128" blue="0" />
     </on_color>
     <scripts />
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
     <on_label>Limit</on_label>
     <scale_options>
       <width_scalable>true</width_scalable>
@@ -1307,7 +1307,7 @@ $(pv_value)</tooltip>
     <square_button>false</square_button>
     <show_led>true</show_led>
     <scripts />
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
     <height>50</height>
     <on_label>HOMF</on_label>
     <border_width>2</border_width>
@@ -1375,7 +1375,7 @@ $(pv_value)</tooltip>
     <square_button>false</square_button>
     <show_led>true</show_led>
     <scripts />
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
     <height>50</height>
     <on_label>STOPPED</on_label>
     <border_width>2</border_width>
@@ -1443,7 +1443,7 @@ $(pv_value)</tooltip>
     <square_button>false</square_button>
     <show_led>true</show_led>
     <scripts />
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
     <height>50</height>
     <on_label>HOMR</on_label>
     <border_width>2</border_width>
@@ -1511,7 +1511,7 @@ $(pv_value)</tooltip>
     <square_button>false</square_button>
     <show_led>true</show_led>
     <scripts />
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
     <height>50</height>
     <on_label>JOGR</on_label>
     <border_width>2</border_width>
@@ -1579,7 +1579,7 @@ $(pv_value)</tooltip>
     <square_button>false</square_button>
     <show_led>true</show_led>
     <scripts />
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
     <height>50</height>
     <on_label>JOGF</on_label>
     <border_width>2</border_width>
@@ -1647,7 +1647,7 @@ $(pv_value)</tooltip>
     <square_button>false</square_button>
     <show_led>true</show_led>
     <scripts />
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
     <height>50</height>
     <on_label>TweekF</on_label>
     <border_width>2</border_width>
@@ -1715,7 +1715,7 @@ $(pv_value)</tooltip>
     <square_button>false</square_button>
     <show_led>true</show_led>
     <scripts />
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
     <height>50</height>
     <on_label>TweekR</on_label>
     <border_width>2</border_width>
@@ -1900,7 +1900,7 @@ $(pv_value)</tooltip>
     <pv_value />
     <released_action_index>0</released_action_index>
     <scripts />
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
     <height>100</height>
     <on_label>SET</on_label>
     <border_width>1</border_width>
@@ -2115,7 +2115,7 @@ $(pv_value)</tooltip>
     <square_button>false</square_button>
     <show_led>true</show_led>
     <scripts />
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
     <height>50</height>
     <on_label>UEIP</on_label>
     <border_width>2</border_width>
@@ -2193,7 +2193,7 @@ $(pv_value)</tooltip>
     <wuid>7b2b5da1:14bbad371fa:-7f6b</wuid>
     <next_focus>0</next_focus>
     <scripts />
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
     <scale_options>
       <width_scalable>true</width_scalable>
       <height_scalable>true</height_scalable>
@@ -2360,7 +2360,7 @@ $(pv_value)</tooltip>
     <wuid>7b2b5da1:14bbad371fa:-7acf</wuid>
     <next_focus>0</next_focus>
     <scripts />
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
     <scale_options>
       <width_scalable>true</width_scalable>
       <height_scalable>true</height_scalable>
@@ -2423,7 +2423,7 @@ $(pv_value)</tooltip>
     <wuid>7b2b5da1:14bbad371fa:-7ac2</wuid>
     <next_focus>0</next_focus>
     <scripts />
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
     <scale_options>
       <width_scalable>true</width_scalable>
       <height_scalable>true</height_scalable>
@@ -2558,7 +2558,7 @@ $(pv_value)</tooltip>
     <square_button>false</square_button>
     <show_led>true</show_led>
     <scripts />
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
     <height>50</height>
     <on_label>DIR</on_label>
     <border_width>2</border_width>
@@ -2636,7 +2636,7 @@ $(pv_value)</tooltip>
     <wuid>9a8343c:14c466e955b:-7f9d</wuid>
     <next_focus>0</next_focus>
     <scripts />
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
     <scale_options>
       <width_scalable>true</width_scalable>
       <height_scalable>true</height_scalable>
@@ -2856,7 +2856,7 @@ $(pv_value)</tooltip>
     <square_button>false</square_button>
     <show_led>true</show_led>
     <scripts />
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
     <height>50</height>
     <on_label>CNEN</on_label>
     <border_width>2</border_width>
@@ -3155,9 +3155,9 @@ $(pv_value)</tooltip>
       <color name="IO OutputPV Bg" red="121" green="123" blue="126" />
     </background_color>
     <password_input>false</password_input>
-    <width>75</width>
-    <x>194</x>
-    <y>152</y>
+    <width>126</width>
+    <x>238</x>
+    <y>128</y>
     <foreground_color>
       <color name="IO OutputPV Fg" red="255" green="255" blue="255" />
     </foreground_color>
@@ -3177,7 +3177,7 @@ $(pv_value)</tooltip>
     <text>ErrId
 </text>
     <scripts />
-    <height>20</height>
+    <height>30</height>
     <border_width>2</border_width>
     <scale_options>
       <width_scalable>true</width_scalable>
@@ -3194,10 +3194,10 @@ $(pv_value)</tooltip>
     <background_color>
       <color name="IO Background" red="255" green="255" blue="205" />
     </background_color>
-    <width>41</width>
-    <x>220</x>
+    <width>27</width>
+    <x>311</x>
     <name>Label Template_25</name>
-    <y>131</y>
+    <y>107</y>
     <foreground_color>
       <color name="IO Text Fg" red="0" green="32" blue="92" />
     </foreground_color>
@@ -3275,7 +3275,7 @@ $(pv_value)</tooltip>
     <alarm_pulsing>false</alarm_pulsing>
     <tooltip>$(pv_name)
 $(pv_value)</tooltip>
-    <push_action_index>0</push_action_index>
+    <push_action_index>1</push_action_index>
     <rules>
       <rule name="BorderRule" prop_id="border_style" out_exp="false">
         <exp bool_exp="pv0==1">
@@ -3376,7 +3376,7 @@ $(pv_value)</tooltip>
     <wuid>1d681a25:1522fd92503:-6475</wuid>
     <next_focus>0</next_focus>
     <scripts />
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
     <scale_options>
       <width_scalable>true</width_scalable>
       <height_scalable>true</height_scalable>
@@ -3392,69 +3392,6 @@ $(pv_value)</tooltip>
     <width>136</width>
     <x>547</x>
     <y>128</y>
-    <foreground_color>
-      <color name="IO OutputPV Fg" red="255" green="255" blue="255" />
-    </foreground_color>
-    <font>
-      <opifont.name fontName="arial" height="10" style="1">IO Output 1</opifont.name>
-    </font>
-  </widget>
-  <widget typeId="org.csstudio.opibuilder.widgets.TextInput" version="2.0.0">
-    <alarm_pulsing>false</alarm_pulsing>
-    <precision>0</precision>
-    <tooltip>$(pv_name)
-$(pv_value)</tooltip>
-    <horizontal_alignment>0</horizontal_alignment>
-    <rules>
-      <rule name="BorderRule" prop_id="border_style" out_exp="false">
-        <exp bool_exp="pv0==1">
-          <value>9</value>
-        </exp>
-        <pv trig="true">$(pv_name)</pv>
-      </rule>
-    </rules>
-    <pv_value />
-    <auto_size>false</auto_size>
-    <read_only>false</read_only>
-    <text>#####</text>
-    <show_units>false</show_units>
-    <height>25</height>
-    <multiline_input>false</multiline_input>
-    <border_width>2</border_width>
-    <visible>true</visible>
-    <pv_name>$(P)$(R)ErrId</pv_name>
-    <border_color>
-      <color name="IO Border" red="215" green="215" blue="215" />
-    </border_color>
-    <precision_from_pv>true</precision_from_pv>
-    <widget_type>Text Input</widget_type>
-    <confirm_message></confirm_message>
-    <name>Text Input Template_30</name>
-    <style>1</style>
-    <actions hook="false" hook_all="false" />
-    <border_style>6</border_style>
-    <forecolor_alarm_sensitive>false</forecolor_alarm_sensitive>
-    <show_native_border>true</show_native_border>
-    <enabled>true</enabled>
-    <wuid>6b25fd98:1531363a723:-7f6e</wuid>
-    <next_focus>0</next_focus>
-    <scripts />
-    <border_alarm_sensitive>true</border_alarm_sensitive>
-    <scale_options>
-      <width_scalable>true</width_scalable>
-      <height_scalable>true</height_scalable>
-      <keep_wh_ratio>false</keep_wh_ratio>
-    </scale_options>
-    <backcolor_alarm_sensitive>false</backcolor_alarm_sensitive>
-    <format_type>1</format_type>
-    <limits_from_pv>true</limits_from_pv>
-    <background_color>
-      <color name="IO OutputPV Bg" red="121" green="123" blue="126" />
-    </background_color>
-    <password_input>false</password_input>
-    <width>75</width>
-    <x>275</x>
-    <y>152</y>
     <foreground_color>
       <color name="IO OutputPV Fg" red="255" green="255" blue="255" />
     </foreground_color>
