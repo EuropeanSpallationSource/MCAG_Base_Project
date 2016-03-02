@@ -158,7 +158,26 @@ asynStatus eemcuAxis::writeReadACK(void)
     case asynError:
       return status;
     case asynSuccess:
-      if (strcmp(pC_->inString_, "OK")) {
+    {
+      const char *semicolon = &pC_->outString_[0];
+      unsigned int numOK = 1;
+      int res = 1;
+      while (semicolon && semicolon[0]) {
+        semicolon = strchr(semicolon, ';');
+        if (semicolon) {
+          numOK++;
+          semicolon++;
+        }
+      }
+      switch(numOK) {
+        case 1: res = strcmp(pC_->inString_, "OK");  break;
+        case 2: res = strcmp(pC_->inString_, "OK;OK");  break;
+        case 3: res = strcmp(pC_->inString_, "OK:OK;OK");  break;
+        case 4: res = strcmp(pC_->inString_, "OK;OK;OK;OK");  break;
+        default:
+          ;
+      }
+      if (res) {
         status = asynError;
         asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
                   "out=%s in=%s return=%s (%d)\n",
@@ -166,6 +185,7 @@ asynStatus eemcuAxis::writeReadACK(void)
                   pasynManager->strStatus(status), (int)status);
         return status;
       }
+    }
     default:
       break;
   }
@@ -557,21 +577,7 @@ asynStatus eemcuAxis::setMotorLimitsOnAxisIfDefined(void)
              adsport, indexGroupA, 0xE, drvlocal.motorHighLimit * drvlocal.mres,
              adsport, indexGroupA, 0XB, enable,
              adsport, indexGroupA, 0XC, enable);
-    status = pC_->writeReadOnErrorDisconnect();
-    switch (status) {
-    case asynError:
-      break;
-    case asynSuccess:
-      if (strcmp(pC_->inString_, "OK;OK;OK;OK")) {
-        status = asynError;
-      }
-    default:
-      break;
-    }
-    asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
-              "out=%s in=%s return=%s (%d)\n",
-              pC_->outString_, pC_->inString_,
-              pasynManager->strStatus(status), (int)status);
+    status = writeReadACK();
   }
   drvlocal.dirty.motorLimits =  (status != asynSuccess);
   return status;
@@ -593,21 +599,16 @@ asynStatus eemcuAxis::updateMresSoftLimitsIfDirty(int line)
 
 asynStatus eemcuAxis::resetAxis(void)
 {
-  int Err = 0;
   asynStatus status;
-  status = pC_->getIntegerParam(axisNo_, pC_->eemcuErr_, &Err);
-  if (Err) {
-    status = setValueOnAxis("bExecute", 0);
-    if (status) goto resetAxisReturn;
-    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-              "bReset(%d)=1\n",  axisNo_);
-    status = setValueOnAxisVerify("bReset", "bReset", 1, 20);
-    if (status) goto resetAxisReturn;
-    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-              "bReset(%d)=0\n",  axisNo_);
-    status = setValueOnAxisVerify("bReset", "bReset", 0, 20);
-    //if (status) goto resetAxisReturn;
-  }
+  status = setValueOnAxis("bExecute", 0);
+  if (status) goto resetAxisReturn;
+  asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+            "bReset(%d)=1\n",  axisNo_);
+  status = setValueOnAxisVerify("bReset", "bReset", 1, 20);
+  if (status) goto resetAxisReturn;
+  asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+            "bReset(%d)=0\n",  axisNo_);
+  status = setValueOnAxisVerify("bReset", "bReset", 0, 20);
 
   resetAxisReturn:
   asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
@@ -632,9 +633,7 @@ asynStatus eemcuAxis::enableAmplifier(int on)
 asynStatus eemcuAxis::stopAxisInternal(const char *function_name, double acceleration)
 {
   asynStatus status;
-  asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-            "stopAxisInternal(%d) (%s)\n",  axisNo_, function_name);
-  status = setValueOnAxis("bExecute", 0); /* Stop executing */
+  status = setValueOnAxisVerify("bExecute", "bExecute", 0, 1);
   if (status) drvlocal.mustStop = 1;
   return status;
 }
@@ -647,6 +646,34 @@ asynStatus eemcuAxis::stop(double acceleration )
   return stopAxisInternal(__FUNCTION__, acceleration);
 }
 
+void eemcuAxis::callParamCallbacksWrapper()
+{
+  int hasErrId = 0;
+  int hasMCUerror = 0;
+  int hasProblem = 0;
+
+  if (drvlocal.dirty.mres) {
+    /* configuration error */
+    hasErrId = ERROR_MAIN_ENC_SET_SCALE_FAIL_DRV_ENABLED;
+    hasProblem = 1;
+  } else if (drvlocal.old_bError) {
+    /* Error from MCU */
+    hasErrId = drvlocal.old_nErrorId;
+    hasMCUerror = 1;
+    hasProblem = 1;
+  }
+  /* Setting the problem bit means, that MR will send us a stop command.
+     stop will set bExecute to 0, and the error disappears.
+     We don't want that, the user should set stop
+     setIntegerParam(pC_->motorStatusProblem_, hasProblem);
+  */
+  /* error to motor record */
+  setIntegerParam(pC_->motorStatusFollowingError_, hasProblem);
+  /* Error to additional PV */
+  setIntegerParam(pC_->eemcuErr_, hasMCUerror);
+  setIntegerParam(pC_->eemcuErrId_, hasErrId);
+  callParamCallbacks();
+}
 
 
 asynStatus eemcuAxis::pollAll(bool *moving, st_axis_status_type *pst_axis_status)
@@ -735,7 +762,7 @@ asynStatus eemcuAxis::poll(bool *moving)
   if (drvlocal.dirty.initialUpdate) {
     comStatus = initialUpdate();
     if (comStatus) {
-      callParamCallbacks();
+      callParamCallbacksWrapper();
       return asynError;
     }
     drvlocal.dirty.initialUpdate = 0;
@@ -759,20 +786,11 @@ asynStatus eemcuAxis::poll(bool *moving)
     goto skip;
   }
   setIntegerParam(pC_->motorStatusHomed_, st_axis_status.bHomed);
-  /* Setting the problem bit means, that MR will send us a stop command.
-     stop will set bExecute to 0, and the error disappears.
-     We don't want that, the user should set stop
-     setIntegerParam(pC_->motorStatusProblem_, st_axis_status.bError);
-  */
-  setIntegerParam(pC_->motorStatusFollowingError_, st_axis_status.bError);
-
   setIntegerParam(pC_->motorStatusCommsError_, 0);
   setIntegerParam(pC_->motorStatusAtHome_, st_axis_status.bHomeSensor);
   setIntegerParam(pC_->motorStatusLowLimit_, !st_axis_status.bLimitBwd);
   setIntegerParam(pC_->motorStatusHighLimit_, !st_axis_status.bLimitFwd);
   setIntegerParam(pC_->motorStatusPowerOn_, st_axis_status.bEnabled);
-  setIntegerParam(pC_->eemcuErr_, st_axis_status.bError);
-  setIntegerParam(pC_->eemcuErrId_, st_axis_status.nErrorId);
 
   nowMoving = st_axis_status.bBusy && st_axis_status.bExecute && st_axis_status.bEnabled;
   if (drvlocal.waitNumPollsBeforeReady) {
@@ -817,22 +835,18 @@ asynStatus eemcuAxis::poll(bool *moving)
   if (drvlocal.old_bError != st_axis_status.bError ||
       drvlocal.old_nErrorId != st_axis_status.nErrorId) {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-              "poll(%d) bError=%d st_axis_status.nErrorId=0x%x %d \n",
+              "poll(%d) bError=%d st_axis_status.nErrorId=0x%x\n",
               axisNo_, st_axis_status.bError,
-              st_axis_status.nErrorId, st_axis_status.nErrorId);
+              st_axis_status.nErrorId);
     drvlocal.old_bError = st_axis_status.bError;
     drvlocal.old_nErrorId = st_axis_status.nErrorId;
   }
 
-  //setIntegerParam(pC_->motorStatusProblem_, 0);
-  callParamCallbacks();
+  callParamCallbacksWrapper();
   return asynSuccess;
 
   badconfig:
-  setIntegerParam(pC_->motorStatusFollowingError_, 1);
-  setIntegerParam(pC_->eemcuErr_, 1);
-  setIntegerParam(pC_->eemcuErrId_, ERROR_MAIN_ENC_SET_SCALE_FAIL_DRV_ENABLED);
-  callParamCallbacks();
+  callParamCallbacksWrapper();
   return asynError;
 
   skip:
@@ -872,8 +886,9 @@ asynStatus eemcuAxis::setIntegerParam(int function, int value)
   } else if (function == pC_->eemcuErrRst_) {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
               "setIntegerParam(%d TwinCATmotorErrRst_)=%d\n", axisNo_, value);
-    status = resetAxis();
-    return status;
+    if (value) {
+      resetAxis();
+    }
 #endif
   }
 

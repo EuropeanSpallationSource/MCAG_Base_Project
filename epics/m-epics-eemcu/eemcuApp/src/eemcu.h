@@ -64,6 +64,7 @@ public:
   asynStatus moveVelocity(double min_velocity, double max_velocity, double acceleration);
   asynStatus home(double min_velocity, double max_velocity, double acceleration, int forwards);
   asynStatus stop(double acceleration);
+  void       callParamCallbacksWrapper();
   asynStatus pollAll(bool *moving);
   asynStatus pollAll(bool *moving, st_axis_status_type *pst_axis_status);
   asynStatus poll(bool *moving);
@@ -79,8 +80,9 @@ private:
     const char *externalEncoderStr;
     int axisFlags;
     int oldNowMoving;
-    int old_bError;
-    int old_nErrorId;
+    int eemcuErr;     /* What we wrote to EPICS */
+    int old_bError;   /* copy of bError */
+    int old_nErrorId; /* copy of bError */
     unsigned int waitNumPollsBeforeReady;
     int mustStop;
     /* Which values have changed in the EPICS IOC, but are not updated in the
@@ -89,12 +91,11 @@ private:
       int          nMotionAxisID;     /* Needed for ADR commands */
       unsigned int mres             :1;
       unsigned int motorLimits      :1;
-      //unsigned int mustStop         :1;
       unsigned int stAxisStatus_V00 :1;
       unsigned int oldStatusDisconnected : 1;
       unsigned int initialUpdate :1;
-
     }  dirty;
+
     /* Which values have been defined: at startup none */
     struct {
       unsigned int motorHighLimit   :1;
