@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.0.36">
   <POU Name="FB_DriveVirtual" Id="{45901cd0-c6d2-4114-b7cf-de832171219f}" SpecialFunc="None">
     <Declaration><![CDATA[///#########################################################
@@ -62,7 +62,7 @@ VAR_OUTPUT
 	fActVelocity: LREAL;
 	fActPosition: LREAL;
 	fActDiff: LREAL;
-
+    sErrorMessage:STRING;
 END_VAR
 VAR_IN_OUT
 	Axis: AXIS_REF;
@@ -834,6 +834,9 @@ ELSE
 	nErrorId:=0;
 END_IF;
 
+(*Converese nErrorID to string*)
+sErrorMessage:=WORD_TO_HEXSTR(in:=TO_WORD(nErrorID) , iPrecision:= 4, bLoCase:=0 );
+
 (*Status from Nc*)
 Status:=Axis.Status;
 
@@ -883,6 +886,5 @@ IF bFirstScan THEN
 	bFirstScan:=FALSE;
 END_IF]]></ST>
     </Implementation>
-    <ObjectProperties />
   </POU>
 </TcPlcObject>
