@@ -86,6 +86,7 @@ private:
     int old_nErrorId; /* copy of bError */
     unsigned int waitNumPollsBeforeReady;
     int mustStop;
+    int nCommand;
     /* Which values have changed in the EPICS IOC, but are not updated in the
        motion controller */
     struct {

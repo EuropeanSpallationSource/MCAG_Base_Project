@@ -20,6 +20,7 @@
 #define ERROR_MAIN_ENC_SET_SCALE_FAIL_DRV_ENABLED 0x2001C
 #endif
 
+#define NCOMMANDHOME 10
 
 //
 // These are the eemcuAxis methods
@@ -461,10 +462,11 @@ asynStatus eemcuAxis::sendVelocityAndAccelExecute(double maxVelocity, double acc
 asynStatus eemcuAxis::move(double position, int relative, double minVelocity, double maxVelocity, double acceleration)
 {
   asynStatus status = asynSuccess;
-
+  int nCommand = relative ? 2 : 3;
   if (status == asynSuccess) status = stopAxisInternal(__FUNCTION__, 0);
   if (status == asynSuccess) status = updateMresSoftLimitsIfDirty(__LINE__);
-  if (status == asynSuccess) status = setValueOnAxis("nCommand", relative ? 2 : 3);
+  if (status == asynSuccess) status = setValueOnAxis("nCommand", nCommand);
+  if (status == asynSuccess) drvlocal.nCommand = nCommand;
   if (status == asynSuccess) status = setValueOnAxis("fPosition", position * drvlocal.mres);
   if (status == asynSuccess) status = sendVelocityAndAccelExecute(maxVelocity, acceleration);
 
@@ -483,6 +485,7 @@ asynStatus eemcuAxis::home(double minVelocity, double maxVelocity, double accele
 {
   asynStatus status = asynSuccess;
   int motorHomeProc = -1;
+  int nCommand = NCOMMANDHOME;
   double homeVeloTowardsHomeSensor = 0;
 
   if (status == asynSuccess) status = pC_->getDoubleParam(axisNo_,
@@ -502,7 +505,8 @@ asynStatus eemcuAxis::home(double minVelocity, double maxVelocity, double accele
   if ((drvlocal.axisFlags & AMPLIFIER_ON_FLAG_WHEN_HOMING) &&
       (status == asynSuccess)) status = enableAmplifier(1);
   if (status == asynSuccess) status = setValueOnAxis("fHomePosition", 0);
-  if (status == asynSuccess) status = setValueOnAxis("nCommand", 10);
+  if (status == asynSuccess) status = setValueOnAxis("nCommand", nCommand );
+  if (status == asynSuccess) drvlocal.nCommand = nCommand;
   if (status == asynSuccess) status = setValueOnAxis("nCmdData", motorHomeProc);
   /* Use JVEL as velocity towards the home sensor, in EGU */
   if (status == asynSuccess) status = setADRValueOnAxis(501, 0x4000, 0x6,
@@ -652,6 +656,7 @@ asynStatus eemcuAxis::enableAmplifier(int on)
 asynStatus eemcuAxis::stopAxisInternal(const char *function_name, double acceleration)
 {
   asynStatus status;
+  drvlocal.nCommand = 0;
   status = setValueOnAxisVerify("bExecute", "bExecute", 0, 1);
   if (status) drvlocal.mustStop = 1;
   return status;
@@ -807,8 +812,12 @@ asynStatus eemcuAxis::poll(bool *moving)
   setIntegerParam(pC_->motorStatusHomed_, st_axis_status.bHomed);
   setIntegerParam(pC_->motorStatusCommsError_, 0);
   setIntegerParam(pC_->motorStatusAtHome_, st_axis_status.bHomeSensor);
-  setIntegerParam(pC_->motorStatusLowLimit_, !st_axis_status.bLimitBwd);
-  setIntegerParam(pC_->motorStatusHighLimit_, !st_axis_status.bLimitFwd);
+  if (drvlocal.nCommand != NCOMMANDHOME) {
+    /* Hide the limit switches while homing */
+    /* https://github.com/epics-modules/motor/pull/19 */
+    setIntegerParam(pC_->motorStatusLowLimit_, !st_axis_status.bLimitBwd);
+    setIntegerParam(pC_->motorStatusHighLimit_, !st_axis_status.bLimitFwd);
+  }
   setIntegerParam(pC_->motorStatusPowerOn_, st_axis_status.bEnabled);
 
   nowMoving = st_axis_status.bBusy && st_axis_status.bExecute && st_axis_status.bEnabled;
@@ -819,12 +828,13 @@ asynStatus eemcuAxis::poll(bool *moving)
     setIntegerParam(pC_->motorStatusMoving_, nowMoving);
     setIntegerParam(pC_->motorStatusDone_, !nowMoving);
     *moving = nowMoving ? true : false;
+    if (!nowMoving) drvlocal.nCommand = 0;
   }
 
   if (drvlocal.dirty.mres) {
     comStatus = setMRESOnAxisIfDefinedAndDirty();
     if (comStatus) goto badconfig;
-  } else {
+  } else if (drvlocal.nCommand != NCOMMANDHOME) {
     double newPositionInSteps = st_axis_status.fActPosition / drvlocal.mres;
     /* If not moving, trigger a record processing at low rate */
     if (!nowMoving) setDoubleParam(pC_->motorPosition_, newPositionInSteps + 1);
