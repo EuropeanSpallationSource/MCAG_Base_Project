@@ -38,10 +38,11 @@ eemcuController::eemcuController(const char *portName, const char *MotorPortName
 
   createParam(eemcuErrString,           asynParamInt32,       &eemcuErr_);
   createParam(eemcuErrIdString,         asynParamInt32,       &eemcuErrId_);
+  createParam(eemcuErrMsgString,        asynParamOctet,       &eemcuErrMsg_);
 
   createParam(eemcuProcHomString,       asynParamInt32,       &eemcuProcHom_);
   createParam(eemcuErrRstString,        asynParamInt32,       &eemcuErrRst_);
-  createParam(eemcuJVELString,               asynParamFloat64,     &eemcuJVEL_);
+  createParam(eemcuJVELString,          asynParamFloat64,     &eemcuJVEL_);
 
 #ifdef CREATE_MOTOR_REC_RESOLUTION
   /* Latest asynMotorController does this, but not the version in 6.81 (or 6.9x) */

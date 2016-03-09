@@ -21,6 +21,7 @@ FILENAME...   eemcu.h
 #define eemcuProcHomString              "ProcHom"
 #define eemcuErrRstString               "ErrRst"
 #define eemcuJVELString                 "JVEL_"
+#define eemcuErrMsgString               "ErrMsg"
 
 extern "C" {
   int eemcuCreateAxis(const char *eemcuName, int axisNo,
@@ -93,7 +94,8 @@ private:
       unsigned int motorLimits      :1;
       unsigned int stAxisStatus_V00 :1;
       unsigned int oldStatusDisconnected : 1;
-      unsigned int initialUpdate :1;
+      unsigned int initialUpdate    :1;
+      unsigned int sErrorMessage    :1;
     }  dirty;
 
     /* Which values have been defined: at startup none */
@@ -135,6 +137,7 @@ private:
 
   asynStatus getValueFromAxis(const char* var, int *value);
   asynStatus getValueFromAxis(const char* var, double *value);
+  asynStatus getStringFromAxis(const char* var, char *value, size_t maxlen);
   asynStatus getValueFromController(const char* var, double *value);
 
   asynStatus setMotorLimitsOnAxisIfDefined(void);
@@ -146,6 +149,7 @@ private:
   asynStatus setClosedLoop(bool closedLoop);
   asynStatus setIntegerParam(int function, int value);
   asynStatus setDoubleParam(int function, double value);
+  asynStatus setStringParam(int function, const char *value);
   asynStatus stopAxisInternal(const char *function_name, double acceleration);
 
   friend class eemcuController;
@@ -174,7 +178,7 @@ public:
 #endif
 
   /* Add parameters here */
-
+  int eemcuErrMsg_;
   int eemcuErrRst_;
   int eemcuJVEL_;
   int eemcuErrId_;

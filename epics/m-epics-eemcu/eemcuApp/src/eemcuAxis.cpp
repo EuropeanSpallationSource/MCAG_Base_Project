@@ -97,6 +97,9 @@ asynStatus eemcuAxis::handleDisconnect()
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
               "Communication error(%d)\n", axisNo_);
   }
+  if (!drvlocal.dirty.sErrorMessage) {
+    setStringParam(pC_->eemcuErrMsg_, "Communication error");
+  }
   memset(&drvlocal.dirty, 0xFF, sizeof(drvlocal.dirty));
   setIntegerParam(pC_->motorStatusCommsError_, 1);
   callParamCallbacks();
@@ -376,6 +379,22 @@ asynStatus eemcuAxis::getValueFromAxis(const char* var, double *value)
     return asynError;
   }
   *value = res;
+  return asynSuccess;
+}
+
+/** Gets a string value from an axis
+ * \param[in] name of the variable to be retrieved
+ * \param[in] pointer to the string result
+ *
+ */
+asynStatus eemcuAxis::getStringFromAxis(const char *var, char *value, size_t maxlen)
+{
+  asynStatus comStatus;
+  sprintf(pC_->outString_, "Main.M%d.%s?", axisNo_, var);
+  comStatus = pC_->writeReadOnErrorDisconnect();
+  if (comStatus) return comStatus;
+
+  memcpy(value, pC_->inString_, maxlen);
   return asynSuccess;
 }
 
@@ -833,13 +852,24 @@ asynStatus eemcuAxis::poll(bool *moving)
     drvlocal.oldNowMoving = nowMoving;
   }
   if (drvlocal.old_bError != st_axis_status.bError ||
-      drvlocal.old_nErrorId != st_axis_status.nErrorId) {
+      drvlocal.old_nErrorId != st_axis_status.nErrorId ||
+      drvlocal.dirty.sErrorMessage) {
+    char sErrorMessage[256];
+    memset(&sErrorMessage[0], 0, sizeof(sErrorMessage));
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
               "poll(%d) bError=%d st_axis_status.nErrorId=0x%x\n",
               axisNo_, st_axis_status.bError,
               st_axis_status.nErrorId);
     drvlocal.old_bError = st_axis_status.bError;
     drvlocal.old_nErrorId = st_axis_status.nErrorId;
+    drvlocal.dirty.sErrorMessage = 0;
+    if (st_axis_status.nErrorId) {
+      asynStatus status;
+      status = getStringFromAxis("sErrorMessage", (char *)&sErrorMessage[0], sizeof(sErrorMessage));
+      if (status == asynSuccess) setStringParam(pC_->eemcuErrMsg_, sErrorMessage);
+    } else {
+      setStringParam(pC_->eemcuErrMsg_, "");
+    }
   }
 
   callParamCallbacksWrapper();
@@ -1032,5 +1062,20 @@ asynStatus eemcuAxis::setDoubleParam(int function, double value)
 
   // Call the base class method
   status = asynMotorAxis::setDoubleParam(function, value);
+  return status;
+}
+
+asynStatus eemcuAxis::setStringParam(int function, const char *value)
+{
+  asynStatus status;
+#ifdef eemcuErrMsgString
+  if (function == pC_->eemcuErrMsg_) {
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setStringParam(%d eemcuErrMsg_)=%s\n", axisNo_, value);
+  }
+#endif
+
+  //Call base class method
+  status = asynMotorAxis::setStringParam(function, value);
   return status;
 }
