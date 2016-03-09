@@ -450,6 +450,16 @@ static void motorHandleOneArg(const char *myarg_1)
                    );
     return;
   }
+  /* sErrorMessage?  */
+  if (!strcmp(myarg_1, "sErrorMessage?")) {
+    char buf[32]; /* 9 should be OK */
+    int nErrorId = get_nErrorId(motor_axis_no);
+    snprintf(buf, sizeof(buf), "%x", nErrorId);
+    cmd_buf_printf("%s", buf);
+    return;
+  }
+
+  /* End of "get" commands, from here, set commands */
 
   /* nCommand=3 */
   nvals = sscanf(myarg_1, "nCommand=%d", &iValue);
