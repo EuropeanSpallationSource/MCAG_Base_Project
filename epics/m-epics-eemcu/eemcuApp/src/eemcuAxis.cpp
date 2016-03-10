@@ -1077,7 +1077,12 @@ asynStatus eemcuAxis::setDoubleParam(int function, double value)
 
 asynStatus eemcuAxis::setStringParam(int function, const char *value)
 {
-  asynStatus status;
+  asynStatus status = asynSuccess;
+#ifdef profileMoveModeString
+  /* motorRecord 6.8.1 doesn't have setStringParam(),
+     but modern have, as they have profileMoveModeString.
+     We could check for VERSION, but this simple #ifdef
+     works for our needs */
 #ifdef eemcuErrMsgString
   if (function == pC_->eemcuErrMsg_) {
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
@@ -1085,7 +1090,8 @@ asynStatus eemcuAxis::setStringParam(int function, const char *value)
   }
 #endif
 
-  //Call base class method
+  /* Call base class method */
   status = asynMotorAxis::setStringParam(function, value);
+#endif
   return status;
 }
