@@ -71,6 +71,14 @@ public:
   asynStatus poll(bool *moving);
 
 private:
+  typedef enum
+  {
+    eeAxisErrorNoError,
+    eeAxisErrorMCUError,
+    eeAxisErrorIOCcomError,
+    eeAxisErrorIOCcfgError,
+    eeAxisErrorIOCError
+  } eeAxisErrorType;
   eemcuController *pC_;          /**< Pointer to the asynMotorController to which this axis belongs.
                                    *   Abbreviated because it is used very frequently */
   struct {
@@ -79,14 +87,19 @@ private:
     double motorLowLimit;
     double oldPosition;
     const char *externalEncoderStr;
+    const char *cfgfileStr;
     int axisFlags;
     int oldNowMoving;
-    int eemcuErr;     /* What we wrote to EPICS */
+    int MCU_nErrorId;     /* nErrorID from MCU */
+    int old_MCU_nErrorId; /* old nErrorID from MCU */
+    int old_EPICS_nErrorId; /* old nErrorID from MCU */
+
     int old_bError;   /* copy of bError */
-    int old_nErrorId; /* copy of bError */
     unsigned int waitNumPollsBeforeReady;
     int mustStop;
     int nCommand;
+    eeAxisErrorType old_eeAxisError;
+    eeAxisErrorType eeAxisError;
     /* Which values have changed in the EPICS IOC, but are not updated in the
        motion controller */
     struct {
@@ -96,7 +109,8 @@ private:
       unsigned int stAxisStatus_V00 :1;
       unsigned int oldStatusDisconnected : 1;
       unsigned int initialUpdate    :1;
-      unsigned int sErrorMessage    :1;
+      unsigned int sErrorMessage    :1; /* From MCU */
+      unsigned int readConfigFile   :1;
     }  dirty;
 
     /* Which values have been defined: at startup none */
@@ -111,6 +125,7 @@ private:
 
   asynStatus handleDisconnect(void);
   asynStatus handleConnect(void);
+  asynStatus readConfigFile(void);
   asynStatus initialUpdate(void);
 
   asynStatus handleStatusChange(asynStatus status);
