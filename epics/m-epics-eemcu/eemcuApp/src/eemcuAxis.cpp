@@ -74,6 +74,7 @@ eemcuAxis::eemcuAxis(eemcuController *pC, int axisNo,
         pThisOption += strlen(cfgfile_str);
         drvlocal.cfgfileStr = strdup(pThisOption);
       }
+      pThisOption = pNextOption;
     }
     free(pOptions);
   }
