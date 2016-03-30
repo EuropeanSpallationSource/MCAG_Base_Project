@@ -385,7 +385,7 @@ static int soft_limits_clip(int axis_no, double velocity)
       velocity > 0 &&
       motor_axis[axis_no].MotorPosNow > motor_axis[axis_no].highSoftLimitPos) {
     fprintf(stdlog,
-            "%s/%s:%d axis_no=%d CLIP soft low MotorPosNow=%g highSoftLimitPos=%g\n",
+            "%s/%s:%d axis_no=%d CLIP soft high MotorPosNow=%g highSoftLimitPos=%g\n",
             __FILE__, __FUNCTION__, __LINE__,
             axis_no,
             motor_axis[axis_no].MotorPosNow,
@@ -397,7 +397,7 @@ static int soft_limits_clip(int axis_no, double velocity)
       velocity < 0 &&
       motor_axis[axis_no].MotorPosNow < motor_axis[axis_no].lowSoftLimitPos) {
     fprintf(stdlog,
-            "%s/%s:%d axis_no=%d CLIP soft high MotorPosNow=%g lowSoftLimitPos=%g\n",
+            "%s/%s:%d axis_no=%d CLIP soft low MotorPosNow=%g lowSoftLimitPos=%g\n",
             __FILE__, __FUNCTION__, __LINE__,
             axis_no,
             motor_axis[axis_no].MotorPosNow,
