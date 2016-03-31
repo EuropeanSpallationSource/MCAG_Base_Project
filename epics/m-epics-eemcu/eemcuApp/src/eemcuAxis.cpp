@@ -6,6 +6,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <errno.h>
+#include <unistd.h>
 
 #include <epicsThread.h>
 
@@ -18,6 +20,10 @@
 /* temporally definition */
 #ifndef ERROR_MAIN_ENC_SET_SCALE_FAIL_DRV_ENABLED
 #define ERROR_MAIN_ENC_SET_SCALE_FAIL_DRV_ENABLED 0x2001C
+#endif
+
+#ifndef ERROR_CONFIG_ERROR
+#define ERROR_CONFIG_ERROR 0x30000
 #endif
 
 #define NCOMMANDHOME 10
@@ -40,12 +46,14 @@ eemcuAxis::eemcuAxis(eemcuController *pC, int axisNo,
 {
   memset(&drvlocal, 0, sizeof(drvlocal));
   memset(&drvlocal.dirty, 0xFF, sizeof(drvlocal.dirty));
+  drvlocal.old_eeAxisError = eeAxisErrorIOCcomError;
   drvlocal.axisFlags = axisFlags;
   if (axisFlags & AMPLIFIER_ON_FLAG_USING_CNEN) {
     setIntegerParam(pC->motorStatusGainSupport_, 1);
   }
   if (axisOptionsStr && axisOptionsStr[0]) {
     const char * const encoder_is_str = "encoder=";
+    const char * const cfgfile_str = "cfgFile=";
 
     char *pOptions = strdup(axisOptionsStr);
     char *pThisOption = pOptions;
@@ -62,6 +70,11 @@ eemcuAxis::eemcuAxis(eemcuController *pC, int axisNo,
         drvlocal.externalEncoderStr = strdup(pThisOption);
         setIntegerParam(pC->motorStatusHasEncoder_, 1);
       }
+      if (!strncmp(pThisOption, cfgfile_str, strlen(cfgfile_str))) {
+        pThisOption += strlen(cfgfile_str);
+        drvlocal.cfgfileStr = strdup(pThisOption);
+      }
+      pThisOption = pNextOption;
     }
     free(pOptions);
   }
@@ -98,13 +111,131 @@ asynStatus eemcuAxis::handleDisconnect()
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
               "Communication error(%d)\n", axisNo_);
   }
-  if (!drvlocal.dirty.sErrorMessage) {
-    setStringParam(pC_->eemcuErrMsg_, "Communication error");
-  }
   memset(&drvlocal.dirty, 0xFF, sizeof(drvlocal.dirty));
   setIntegerParam(pC_->motorStatusCommsError_, 1);
-  callParamCallbacks();
+  callParamCallbacksWrapper();
   return status;
+}
+
+asynStatus eemcuAxis::readConfigFile(void)
+{
+  const char *setRaw_str = "setRaw ";
+  const char *setADRinteger_str = "setADRinteger ";
+  const char *setADRdouble_str  = "setADRdouble ";
+  FILE *fp;
+  char *ret = &pC_->outString_[0];
+  int line_no = 0;
+  asynStatus status = asynSuccess;
+  const char *errorTxt = NULL;
+  /* no config file, or successfully uploaded : return */
+  if (!drvlocal.cfgfileStr) return asynSuccess;
+  if (!drvlocal.dirty.readConfigFile) return asynSuccess;
+
+  fp = fopen(drvlocal.cfgfileStr, "r");
+  if (!fp) {
+    int saved_errno = errno;
+    char buf[4096];
+
+    char *mypwd = getcwd(buf, sizeof(buf));
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
+              "readConfigFile can not open (%s) (%s) PWD=(%s)\n",
+              drvlocal.cfgfileStr,
+              strerror(saved_errno),
+              mypwd ? mypwd : "");
+    return asynError;
+  }
+  while (ret && !status && !errorTxt) {
+    char rdbuf[256];
+    size_t i;
+    size_t len;
+    int nvals = 0;
+
+    line_no++;
+    ret = fgets(rdbuf, sizeof(rdbuf), fp);
+    if (!ret) break;    /* end of file or error */
+    len = strlen(ret);
+    if (!len) continue; /* empty line, no LF */
+    for (i=0; i < len; i++) {
+      /* No LF, no CR , no ctrl characters, */
+      if (rdbuf[i] < 32) rdbuf[i] = 0;
+    }
+    len = strlen(ret);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
+              "readConfigFile line %02u line=%s\n",
+              line_no,
+              rdbuf);
+    if (!len) continue; /* empty line with LF */
+
+    if (rdbuf[0] == '#') {
+      continue; /*  Comment line */
+    } else if (!strncmp(setRaw_str, rdbuf, strlen(setRaw_str))) {
+      const char *cfg_txt_p = &rdbuf[strlen(setRaw_str)];
+      while (*cfg_txt_p == ' ') cfg_txt_p++;
+
+      snprintf(pC_->outString_, sizeof(pC_->outString_), "%s", cfg_txt_p);
+      status = writeReadACK();
+    } else if (!strncmp(setADRinteger_str, rdbuf, strlen(setADRinteger_str))) {
+      unsigned adsport;
+      unsigned indexGroup;
+      unsigned indexOffset;
+      int value;
+      const char *cfg_txt_p = &rdbuf[strlen(setADRinteger_str)];
+      while (*cfg_txt_p == ' ') cfg_txt_p++;
+      nvals = sscanf(cfg_txt_p, "%u %x %x %d",
+                     &adsport, &indexGroup, &indexOffset, &value);
+      if (nvals == 4) {
+        status = setADRValueOnAxis(adsport, indexGroup, indexOffset, value);
+      } else {
+        errorTxt = "Need 4 values";
+      }
+    } else if (!strncmp(setADRdouble_str, rdbuf, strlen(setADRdouble_str))) {
+      unsigned adsport;
+      unsigned indexGroup;
+      unsigned indexOffset;
+      double value;
+      const char *cfg_txt_p = &rdbuf[strlen(setADRdouble_str)];
+      while (*cfg_txt_p == ' ') cfg_txt_p++;
+      nvals = sscanf(cfg_txt_p, "%u %x %x %lf",
+                     &adsport, &indexGroup, &indexOffset, &value);
+      if (nvals == 4) {
+        status = setADRValueOnAxis(adsport, indexGroup, indexOffset, value);
+      } else {
+        errorTxt = "Need 4 values";
+      }
+    } else {
+      errorTxt = "Illegal command";
+    }
+    if (status || errorTxt) {
+      char errbuf[256];
+      errbuf[sizeof(errbuf)-1] = 0;
+      if (status) {
+        snprintf(errbuf, sizeof(errbuf)-1,
+                 "%s:%d out=%s\nin=%s",
+                 drvlocal.cfgfileStr, line_no, pC_->outString_, pC_->inString_);
+      } else {
+        snprintf(errbuf, sizeof(errbuf)-1,
+                 "%s:%d \"%s\"\n%s",
+                 drvlocal.cfgfileStr, line_no, rdbuf, errorTxt);
+      }
+
+      asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
+                "readConfigFile %s\n", errbuf);
+      setStringParam(pC_->eemcuErrMsg_, errbuf);
+    }
+  } /* while */
+
+  if (ferror(fp) || status || errorTxt) {
+    if (ferror(fp)) {
+      asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
+                "readConfigFile ferror (%s)\n",
+                drvlocal.cfgfileStr);
+    }
+    fclose(fp);
+    return asynError;
+  }
+
+  drvlocal.dirty.readConfigFile = 0;
+  return asynSuccess;
 }
 
 /** Connection status is changed, the dirty bits must be set and
@@ -116,7 +247,17 @@ asynStatus eemcuAxis::handleDisconnect()
 asynStatus eemcuAxis::initialUpdate(void)
 {
   asynStatus status = asynSuccess;
+
+  /*  Check for Axis ID */
+  int axisID = getMotionAxisID();
+  if (axisID != axisNo_) {
+    setStringParam(pC_->eemcuErrMsg_, "ConfigError AxisID");
+    return asynError;
+  }
+  status = readConfigFile();
+  if (status) return status;
   status = updateMresSoftLimitsIfDirty(__LINE__);
+  if (status) return status;
   if ((status == asynSuccess) &&
       (drvlocal.axisFlags & AMPLIFIER_ON_FLAG_CREATE_AXIS)) {
     /* Enable the amplifier when the axis is created,
@@ -125,9 +266,8 @@ asynStatus eemcuAxis::initialUpdate(void)
        See AMPLIFIER_ON_FLAG */
     status = enableAmplifier(1);
   }
-  /*  Enable "Target Position Monitoring" */
-  if (status == asynSuccess) status = setADRValueOnAxis(501, 0x4000, 0x15, 1);
 
+  if (!status) drvlocal.dirty.initialUpdate = 0;
   return status;
 }
 
@@ -264,7 +404,7 @@ int eemcuAxis::getMotionAxisID(void)
     if (comStatus) return -1;
   }
 
-  if (ret >= 0) drvlocal.dirty.nMotionAxisID = ret;;
+  if (ret >= 0) drvlocal.dirty.nMotionAxisID = ret;
 
   return ret;
 }
@@ -582,6 +722,8 @@ asynStatus eemcuAxis::setMRESOnAxisIfDefinedAndDirty(void)
 asynStatus eemcuAxis::setMotorLimitsOnAxisIfDefined(void)
 {
   asynStatus status = asynError;
+  drvlocal.dirty.motorLimits = 0;
+
   if (drvlocal.defined.motorLowLimit &&
       drvlocal.defined.motorHighLimit && drvlocal.mres) {
     unsigned int adsport = 501;
@@ -672,30 +814,63 @@ asynStatus eemcuAxis::stop(double acceleration )
 
 void eemcuAxis::callParamCallbacksWrapper()
 {
-  int hasErrId = 0;
-  int hasMCUerror = 0;
-  int hasProblem = 0;
-
-  if (drvlocal.dirty.mres) {
-    /* configuration error */
-    hasErrId = ERROR_MAIN_ENC_SET_SCALE_FAIL_DRV_ENABLED;
-    hasProblem = 1;
-  } else if (drvlocal.old_bError) {
+  int EPICS_nErrorId = drvlocal.MCU_nErrorId;
+  drvlocal.eeAxisError = eeAxisErrorNoError;
+  if (EPICS_nErrorId) {
     /* Error from MCU */
-    hasErrId = drvlocal.old_nErrorId;
-    hasMCUerror = 1;
-    hasProblem = 1;
+    drvlocal.eeAxisError = eeAxisErrorMCUError;
+  } else if (drvlocal.dirty.sErrorMessage) {
+    /* print error below */
+    drvlocal.eeAxisError = eeAxisErrorIOCcomError;
+  } else if (drvlocal.dirty.readConfigFile) {
+    EPICS_nErrorId = ERROR_CONFIG_ERROR;
+    drvlocal.eeAxisError = eeAxisErrorIOCcfgError;
+    setStringParam(pC_->eemcuErrMsg_, "ConfigError Config File");
+  } else if (drvlocal.dirty.initialUpdate) {
+    EPICS_nErrorId = ERROR_CONFIG_ERROR;
+    setStringParam(pC_->eemcuErrMsg_, "ConfigError");
+  } else if (drvlocal.dirty.nMotionAxisID != axisNo_) {
+    EPICS_nErrorId = ERROR_CONFIG_ERROR;
+    setStringParam(pC_->eemcuErrMsg_, "ConfigError: AxisID");
+  } else if (drvlocal.dirty.motorLimits) {
+    setStringParam(pC_->eemcuErrMsg_, "ConfigError: Soft limits");
+  } else if (drvlocal.dirty.mres) {
+    EPICS_nErrorId = ERROR_MAIN_ENC_SET_SCALE_FAIL_DRV_ENABLED;
+    setStringParam(pC_->eemcuErrMsg_, "ConfigError: MRES");
+  }
+
+  if (drvlocal.eeAxisError != drvlocal.old_eeAxisError ||
+      drvlocal.old_EPICS_nErrorId != EPICS_nErrorId) {
+
+    drvlocal.old_eeAxisError = drvlocal.eeAxisError;
+    drvlocal.old_EPICS_nErrorId = EPICS_nErrorId;
+
+    if (!EPICS_nErrorId) setStringParam(pC_->eemcuErrMsg_, "");
+
+    switch (drvlocal.eeAxisError) {
+    case eeAxisErrorNoError:
+      setStringParam(pC_->eemcuErrMsg_, "");
+      break;
+    case eeAxisErrorIOCcomError:
+      setStringParam(pC_->eemcuErrMsg_, "CommunicationError");
+      break;
+    default:
+      ;
+    }
+
   }
   /* Setting the problem bit means, that MR will send us a stop command.
      stop will set bExecute to 0, and the error disappears.
      We don't want that, the user should set stop
      setIntegerParam(pC_->motorStatusProblem_, hasProblem);
   */
-  /* error to motor record */
-  setIntegerParam(pC_->motorStatusFollowingError_, hasProblem);
-  /* Error to additional PV */
-  setIntegerParam(pC_->eemcuErr_, hasMCUerror);
-  setIntegerParam(pC_->eemcuErrId_, hasErrId);
+  /* Axis has a problem: Report to motor record */
+  setIntegerParam(pC_->motorStatusFollowingError_,
+                  drvlocal.eeAxisError != eeAxisErrorNoError);
+  /* MCU has a problem: set the red light in CSS */
+  setIntegerParam(pC_->eemcuErr_,
+                  drvlocal.eeAxisError == eeAxisErrorMCUError);
+  setIntegerParam(pC_->eemcuErrId_, EPICS_nErrorId);
   callParamCallbacks();
 }
 
@@ -789,7 +964,6 @@ asynStatus eemcuAxis::poll(bool *moving)
       callParamCallbacksWrapper();
       return asynError;
     }
-    drvlocal.dirty.initialUpdate = 0;
     if (drvlocal.dirty.oldStatusDisconnected) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
                 "connected(%d)\n", axisNo_);
@@ -861,8 +1035,9 @@ asynStatus eemcuAxis::poll(bool *moving)
               st_axis_status.bBusy, st_axis_status.bExecute, st_axis_status.fActPosition);
     drvlocal.oldNowMoving = nowMoving;
   }
+  drvlocal.MCU_nErrorId = st_axis_status.nErrorId;
   if (drvlocal.old_bError != st_axis_status.bError ||
-      drvlocal.old_nErrorId != st_axis_status.nErrorId ||
+      drvlocal.old_MCU_nErrorId != drvlocal.MCU_nErrorId ||
       drvlocal.dirty.sErrorMessage) {
     char sErrorMessage[256];
     memset(&sErrorMessage[0], 0, sizeof(sErrorMessage));
@@ -871,14 +1046,12 @@ asynStatus eemcuAxis::poll(bool *moving)
               axisNo_, st_axis_status.bError,
               st_axis_status.nErrorId);
     drvlocal.old_bError = st_axis_status.bError;
-    drvlocal.old_nErrorId = st_axis_status.nErrorId;
+    drvlocal.old_MCU_nErrorId = st_axis_status.nErrorId;
     drvlocal.dirty.sErrorMessage = 0;
     if (st_axis_status.nErrorId) {
       asynStatus status;
       status = getStringFromAxis("sErrorMessage", (char *)&sErrorMessage[0], sizeof(sErrorMessage));
       if (status == asynSuccess) setStringParam(pC_->eemcuErrMsg_, sErrorMessage);
-    } else {
-      setStringParam(pC_->eemcuErrMsg_, "");
     }
   }
 
