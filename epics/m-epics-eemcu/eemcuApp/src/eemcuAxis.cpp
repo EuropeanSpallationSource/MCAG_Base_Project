@@ -126,7 +126,7 @@ asynStatus eemcuAxis::readConfigFile(void)
   char *ret = &pC_->outString_[0];
   int line_no = 0;
   asynStatus status = asynSuccess;
-  int hasError = 0;
+  const char *errorTxt = NULL;
   /* no config file, or successfully uploaded : return */
   if (!drvlocal.cfgfileStr) return asynSuccess;
   if (!drvlocal.dirty.readConfigFile) return asynSuccess;
@@ -144,7 +144,7 @@ asynStatus eemcuAxis::readConfigFile(void)
               mypwd ? mypwd : "");
     return asynError;
   }
-  while (ret && !status && !hasError) {
+  while (ret && !status && !errorTxt) {
     char rdbuf[256];
     size_t i;
     size_t len;
@@ -161,8 +161,8 @@ asynStatus eemcuAxis::readConfigFile(void)
     }
     len = strlen(ret);
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
-              "readConfigFile line %02d len=%02d line=%s\n",
-              line_no, len,
+              "readConfigFile line %02u line=%s\n",
+              line_no,
               rdbuf);
     if (!len) continue; /* empty line with LF */
 
@@ -186,7 +186,7 @@ asynStatus eemcuAxis::readConfigFile(void)
       if (nvals == 4) {
         status = setADRValueOnAxis(adsport, indexGroup, indexOffset, value);
       } else {
-        hasError = 1;
+        errorTxt = "Need 4 values";
       }
     } else if (!strncmp(setADRdouble_str, rdbuf, strlen(setADRdouble_str))) {
       unsigned adsport;
@@ -200,12 +200,12 @@ asynStatus eemcuAxis::readConfigFile(void)
       if (nvals == 4) {
         status = setADRValueOnAxis(adsport, indexGroup, indexOffset, value);
       } else {
-        hasError = 1;
+        errorTxt = "Need 4 values";
       }
     } else {
-      hasError = 1;
+      errorTxt = "Illegal command";
     }
-    if (status || hasError) {
+    if (status || errorTxt) {
       char errbuf[256];
       errbuf[sizeof(errbuf)-1] = 0;
       if (status) {
@@ -214,8 +214,8 @@ asynStatus eemcuAxis::readConfigFile(void)
                  drvlocal.cfgfileStr, line_no, pC_->outString_, pC_->inString_);
       } else {
         snprintf(errbuf, sizeof(errbuf)-1,
-                 "%s:%d \"%s\"",
-                 drvlocal.cfgfileStr, line_no, rdbuf);
+                 "%s:%d \"%s\"\n%s",
+                 drvlocal.cfgfileStr, line_no, rdbuf, errorTxt);
       }
 
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
@@ -224,7 +224,7 @@ asynStatus eemcuAxis::readConfigFile(void)
     }
   } /* while */
 
-  if (ferror(fp) || status || hasError) {
+  if (ferror(fp) || status || errorTxt) {
     if (ferror(fp)) {
       asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
                 "readConfigFile ferror (%s)\n",
