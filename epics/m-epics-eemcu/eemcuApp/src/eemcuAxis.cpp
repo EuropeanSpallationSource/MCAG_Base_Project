@@ -128,7 +128,10 @@ asynStatus eemcuAxis::readConfigFile(void)
   asynStatus status = asynSuccess;
   const char *errorTxt = NULL;
   /* no config file, or successfully uploaded : return */
-  if (!drvlocal.cfgfileStr) return asynSuccess;
+  if (!drvlocal.cfgfileStr) {
+    drvlocal.dirty.readConfigFile = 0;
+    return asynSuccess;
+  }
   if (!drvlocal.dirty.readConfigFile) return asynSuccess;
 
   fp = fopen(drvlocal.cfgfileStr, "r");
