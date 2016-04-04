@@ -137,14 +137,16 @@ asynStatus eemcuAxis::readConfigFile(void)
   fp = fopen(drvlocal.cfgfileStr, "r");
   if (!fp) {
     int saved_errno = errno;
-    char buf[4096];
+    char cwdbuf[4096];
+    char errbuf[4196];
 
-    char *mypwd = getcwd(buf, sizeof(buf));
-    asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
-              "readConfigFile can not open (%s) (%s) PWD=(%s)\n",
-              drvlocal.cfgfileStr,
-              strerror(saved_errno),
-              mypwd ? mypwd : "");
+    char *mypwd = getcwd(cwdbuf, sizeof(cwdbuf));
+    snprintf(errbuf, sizeof(errbuf)-1,
+             "readConfigFile: %s\n%s/%s",
+             strerror(saved_errno),
+             mypwd ? mypwd : "",
+             drvlocal.cfgfileStr);
+    setStringParam(pC_->eemcuErrMsg_, errbuf);
     return asynError;
   }
   while (ret && !status && !errorTxt) {
@@ -163,11 +165,10 @@ asynStatus eemcuAxis::readConfigFile(void)
       if (rdbuf[i] < 32) rdbuf[i] = 0;
     }
     len = strlen(ret);
-    asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
-              "readConfigFile line %02u line=%s\n",
-              line_no,
-              rdbuf);
     if (!len) continue; /* empty line with LF */
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
+              "readConfigFile %s:%u %s\n",
+              drvlocal.cfgfileStr, line_no, rdbuf);
 
     if (rdbuf[0] == '#') {
       continue; /*  Comment line */
