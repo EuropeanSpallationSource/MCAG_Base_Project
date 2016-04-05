@@ -1,6 +1,14 @@
 ReleaseNotes:
 (This is a very rough overview, the real truth is in "git log")
 
+v0.9.3
+  Make it possible to configure an axis using a config file
+  Work around "homing done when hitting a limit switch" in MR
+  New Error handling. Define additional EPICS PV:
+    $(R)-Err $(R)-ErrRst $(R)-ErrId $(R)-ErrMsg
+  More test cases
+  Send MRES from EPICS to the MCU
+  8 Axis system: Boy screens and other corrections
 v0.9.2
   Use motorClosedLoop from model 3 driver.
   Prepared diffent types of hardware stands:
