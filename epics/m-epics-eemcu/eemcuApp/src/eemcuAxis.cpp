@@ -679,42 +679,6 @@ asynStatus eemcuAxis::moveVelocity(double minVelocity, double maxVelocity, doubl
 }
 
 
-asynStatus eemcuAxis::setMRESOnAxisIfDefinedAndDirty(void)
-{
-  asynStatus status = asynSuccess;
-
-  if (!drvlocal.mres) return asynError;
-  if (!drvlocal.dirty.mres) return asynSuccess;
-
-  {
-    double val23New = fabs(drvlocal.mres), val24New = 1;
-    double val23Rbv = 0, val24Rbv = 0;
-    if (!status) {
-      status = getADRValueFromAxis(501, 0x5000, 0x23, &val23Rbv);
-      /* If this fails, don't log */
-    }
-    if (!status) {
-      status = getADRValueFromAxis(501, 0x5000, 0x24, &val24Rbv);
-      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-                "get MRES from axis(%d) val23Rbv=%g val24Rbv=%g status=%s (%d)\n",
-                axisNo_, val23Rbv, val24Rbv,
-                pasynManager->strStatus(status), (int)status);
-    }
-    if (!status) {
-      while (val23New < 100.0) {
-        val23New *= 16.0;
-        val24New *= 16.0;
-      }
-      if (val23New != val23Rbv || val24New != val24Rbv) {
-        if (!status) status = setADRValueOnAxis(501, 0x5000, 0x23, val23New);
-        if (!status) status = setADRValueOnAxis(501, 0x5000, 0x24, val24New);
-      }
-    }
-  }
-  drvlocal.dirty.mres = (status != asynSuccess);
-  if (!status) pC_->wakeupPoller();
-  return status;
-}
 
 /** Set the low soft-limit on an axis
  *
@@ -757,7 +721,6 @@ asynStatus eemcuAxis::updateMresSoftLimitsIfDirty(int line)
   asynStatus status = asynSuccess;
   asynPrint(pC_->pasynUserController_, ASYN_TRACEIO_DRIVER,
             "called from %d\n",line);
-  if (status == asynSuccess) status = setMRESOnAxisIfDefinedAndDirty();
   if (drvlocal.dirty.motorLimits && status == asynSuccess) status = setMotorLimitsOnAxisIfDefined();
   return status;
 }
@@ -834,9 +797,6 @@ void eemcuAxis::callParamCallbacksWrapper()
     setStringParam(pC_->eemcuErrMsg_, "ConfigError: AxisID");
   } else if (drvlocal.dirty.motorLimits) {
     setStringParam(pC_->eemcuErrMsg_, "ConfigError: Soft limits");
-  } else if (drvlocal.dirty.mres) {
-    EPICS_nErrorId = ERROR_MAIN_ENC_SET_SCALE_FAIL_DRV_ENABLED;
-    setStringParam(pC_->eemcuErrMsg_, "ConfigError: MRES");
   }
 
   if (drvlocal.eeAxisError != drvlocal.old_eeAxisError ||
@@ -1005,10 +965,7 @@ asynStatus eemcuAxis::poll(bool *moving)
     if (!nowMoving) drvlocal.nCommand = 0;
   }
 
-  if (drvlocal.dirty.mres) {
-    comStatus = setMRESOnAxisIfDefinedAndDirty();
-    if (comStatus) goto badconfig;
-  } else if (drvlocal.nCommand != NCOMMANDHOME) {
+  if (drvlocal.nCommand != NCOMMANDHOME) {
     double newPositionInSteps = st_axis_status.fActPosition / drvlocal.mres;
     /* If not moving, trigger a record processing at low rate */
     if (!nowMoving) setDoubleParam(pC_->motorPosition_, newPositionInSteps + 1);
@@ -1057,10 +1014,6 @@ asynStatus eemcuAxis::poll(bool *moving)
 
   callParamCallbacksWrapper();
   return asynSuccess;
-
-  badconfig:
-  callParamCallbacksWrapper();
-  return asynError;
 
   skip:
   handleDisconnect();
@@ -1139,9 +1092,7 @@ asynStatus eemcuAxis::setDoubleParam(int function, double value)
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
               "setDoubleParam(%d motorRecResolution_=%g\n", axisNo_, value);
     drvlocal.mres = value;
-    drvlocal.dirty.mres = 1;
-    status = setMRESOnAxisIfDefinedAndDirty();
-    if (status == asynSuccess) status = setMotorLimitsOnAxisIfDefined();
+    status = setMotorLimitsOnAxisIfDefined();
 #endif
   }
 
