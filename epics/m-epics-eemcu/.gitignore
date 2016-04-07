@@ -10,7 +10,7 @@ iocBoot/ioceemcu/envPaths*
 iocBoot/ioceemcu/st.cmd.centos*
 iocBoot/ioceemcu/st.cmd.linux*
 iocBoot/ioceemcu/st.cmd.darwin*
-iocBoot/ioceemcu/st.cmd.EEE
+iocBoot/ioceemcu/st.cmd.*.EEE
 iocBoot/ioceemcu/st.gdb.*
 iocBoot/ioceemcu/xx
 lib/

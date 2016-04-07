@@ -104,7 +104,6 @@ private:
        motion controller */
     struct {
       int          nMotionAxisID;     /* Needed for ADR commands */
-      unsigned int mres             :1;
       unsigned int motorLimits      :1;
       unsigned int stAxisStatus_V00 :1;
       unsigned int oldStatusDisconnected : 1;
@@ -157,7 +156,6 @@ private:
   asynStatus getValueFromController(const char* var, double *value);
 
   asynStatus setMotorLimitsOnAxisIfDefined(void);
-  asynStatus setMRESOnAxisIfDefinedAndDirty(void);
   asynStatus updateMresSoftLimitsIfDirty(int);
   asynStatus resetAxis(void);
   asynStatus enableAmplifier(int);

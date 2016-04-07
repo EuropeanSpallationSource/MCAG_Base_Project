@@ -173,6 +173,7 @@ fi
       sed                                        \
       -e "s/__EPICS_HOST_ARCH/$EPICS_HOST_ARCH/" \
       -e "s/eemcu,USER/eemcu,$USER/" \
+      -e "s/^cd /#cd /" \
       -e "s/127.0.0.1:5024/$MOTORIP:$MOTORPORT/" |
     grep -v '^  *#' >$stcmddst || {
       echo >&2 can not create stcmddst $stcmddst
