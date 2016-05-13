@@ -1,3 +1,4 @@
 require asyn
+require motor,6.10.4
 require eemcu,USER
 

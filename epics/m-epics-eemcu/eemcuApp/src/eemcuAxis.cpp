@@ -823,14 +823,10 @@ void eemcuAxis::callParamCallbacksWrapper()
     }
 
   }
-  /* Setting the problem bit means, that MR will send us a stop command.
-     stop will set bExecute to 0, and the error disappears.
-     We don't want that, the user should set stop
-     setIntegerParam(pC_->motorStatusProblem_, hasProblem);
-  */
   /* Axis has a problem: Report to motor record */
-  setIntegerParam(pC_->motorStatusFollowingError_,
+  setIntegerParam(pC_->motorStatusProblem_,
                   drvlocal.eeAxisError != eeAxisErrorNoError);
+
   /* MCU has a problem: set the red light in CSS */
   setIntegerParam(pC_->eemcuErr_,
                   drvlocal.eeAxisError == eeAxisErrorMCUError);

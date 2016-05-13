@@ -107,8 +107,8 @@ class Test(unittest.TestCase):
        
         msta = int(self.motm1.get('MSTA'))
         print '%s Error msta=%x' % (tc_no, msta)
-        self.assertEqual(0, msta & self.MSTA_BIT_PROBLEM, 'Error MSTA.Problem)')
-        self.assertNotEqual(0, msta & self.MSTA_BIT_FOLLOW_ERR, 'Error MSTA.Following Error)')
+        self.assertNotEqual(0, msta & self.MSTA_BIT_PROBLEM, 'Error MSTA.Problem should be set)')
+        self.assertEqual(0, msta & self.MSTA_BIT_FOLLOW_ERR, 'Error MSTA.Following Error should not be set)')
         self.assertEqual(0, msta & self.MSTA_BIT_MOVING,     'Error MSTA.Moving)')
 
         bError   = self.pv_Err.get(use_monitor=False)
