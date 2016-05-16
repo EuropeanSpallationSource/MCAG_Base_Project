@@ -1,6 +1,10 @@
 ReleaseNotes:
 (This is a very rough overview, the real truth is in "git log")
 
+v0.9.5
+  Add a config file for the axis connected to 192.68.88.48.
+  Improve the reading: check if a setting is already as it
+  should be, by reading the MCU. If yes, skip the update
 v0.9.4
   Bug fix: Make it possible to run without an axis config file.      
   move test scripts into test/
