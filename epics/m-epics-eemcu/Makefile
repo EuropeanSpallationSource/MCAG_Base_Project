@@ -9,3 +9,5 @@ TEMPLATES = \
   eemcuApp/Db/eemcu.template \
   eemcuApp/Db/eemcu-extra.template
 
+MISCS = \
+  iocBoot/ioceemcu/SolAxis-48.cfg
