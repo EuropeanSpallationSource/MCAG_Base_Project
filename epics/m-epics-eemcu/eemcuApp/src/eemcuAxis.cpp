@@ -188,7 +188,8 @@ asynStatus eemcuAxis::readConfigFile(void)
       nvals = sscanf(cfg_txt_p, "%u %x %x %d",
                      &adsport, &indexGroup, &indexOffset, &value);
       if (nvals == 4) {
-        status = setADRValueOnAxis(adsport, indexGroup, indexOffset, value);
+        status = setADRValueOnAxisVerify(adsport, indexGroup, indexOffset,
+                                         value, 1);
       } else {
         errorTxt = "Need 4 values";
       }
@@ -202,7 +203,8 @@ asynStatus eemcuAxis::readConfigFile(void)
       nvals = sscanf(cfg_txt_p, "%u %x %x %lf",
                      &adsport, &indexGroup, &indexOffset, &value);
       if (nvals == 4) {
-        status = setADRValueOnAxis(adsport, indexGroup, indexOffset, value);
+        status = setADRValueOnAxisVerify(adsport, indexGroup, indexOffset,
+                                         value, 1);
       } else {
         errorTxt = "Need 4 values";
       }
@@ -425,6 +427,30 @@ asynStatus eemcuAxis::setADRValueOnAxis(unsigned adsport,
   return writeReadACK();
 }
 
+asynStatus eemcuAxis::setADRValueOnAxisVerify(unsigned adsport,
+                                              unsigned indexGroup,
+                                              unsigned indexOffset,
+                                              int value,
+                                              unsigned int retryCount)
+{
+  asynStatus status = asynSuccess;
+  unsigned int counter = 0;
+  int rbvalue = 0 - value;
+  while (counter < retryCount) {
+    status = getADRValueFromAxis(adsport, indexGroup, indexOffset, &rbvalue);
+    if (status) break;
+    if (rbvalue == value) break;
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setValueOnAxisVerify(%d) out=%s in=%s\n",
+              axisNo_,pC_->outString_, pC_->inString_);
+    status = setADRValueOnAxis(adsport, indexGroup, indexOffset, value);
+    counter++;
+    if (status) break;
+    epicsThreadSleep(.1);
+  }
+  return status;
+}
+
 asynStatus eemcuAxis::setADRValueOnAxis(unsigned adsport,
                                         unsigned indexGroup,
                                         unsigned indexOffset,
@@ -435,6 +461,56 @@ asynStatus eemcuAxis::setADRValueOnAxis(unsigned adsport,
   sprintf(pC_->outString_, "ADSPORT=%u/.ADR.16#%X,16#%X,8,5=%g",
           adsport, indexGroup + axisID, indexOffset, value);
   return writeReadACK();
+}
+
+asynStatus eemcuAxis::setADRValueOnAxisVerify(unsigned adsport,
+                                              unsigned indexGroup,
+                                              unsigned indexOffset,
+                                              double value,
+                                              unsigned int retryCount)
+{
+  asynStatus status = asynSuccess;
+  unsigned int counter = 0;
+  double rbvalue = 0 - value;
+  while (counter < retryCount) {
+    status = getADRValueFromAxis(adsport, indexGroup, indexOffset, &rbvalue);
+    if (status) break;
+    if (rbvalue == value) break;
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "setValueOnAxisVerify(%d) out=%s in=%s\n",
+              axisNo_,pC_->outString_, pC_->inString_);
+    status = setADRValueOnAxis(adsport, indexGroup, indexOffset, value);
+    counter++;
+    if (status) break;
+    epicsThreadSleep(.1);
+  }
+  return status;
+}
+
+asynStatus eemcuAxis::getADRValueFromAxis(unsigned adsport,
+                                          unsigned indexGroup,
+                                          unsigned indexOffset,
+                                          int *value)
+{
+  int res;
+  int nvals;
+  asynStatus comStatus;
+  int axisID = getMotionAxisID();
+  if (axisID < 0) return asynError;
+  sprintf(pC_->outString_, "ADSPORT=%u/.ADR.16#%X,16#%X,2,2?",
+          adsport, indexGroup + axisID, indexOffset);
+  comStatus = pC_->writeReadOnErrorDisconnect();
+  if (comStatus)
+    return comStatus;
+  nvals = sscanf(pC_->inString_, "%d", &res);
+  if (nvals != 1) {
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
+              "nvals=%d command=\"%s\" response=\"%s\"\n",
+              nvals, pC_->outString_, pC_->inString_);
+    return asynError;
+  }
+  *value = res;
+  return asynSuccess;
 }
 
 asynStatus eemcuAxis::getADRValueFromAxis(unsigned adsport,
