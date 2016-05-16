@@ -140,10 +140,27 @@ private:
                                unsigned indexOffset,
                                int value);
 
+  asynStatus setADRValueOnAxisVerify(unsigned adsport,
+                                     unsigned indexGroup,
+                                     unsigned indexOffset,
+                                     int value,
+                                     unsigned int retryCount);
+
   asynStatus setADRValueOnAxis(unsigned adsport,
                                unsigned indexGroup,
                                unsigned indexOffset,
                                double value);
+
+  asynStatus setADRValueOnAxisVerify(unsigned adsport,
+                                     unsigned indexGroup,
+                                     unsigned indexOffset,
+                                     double value,
+                                     unsigned int retryCount);
+
+  asynStatus getADRValueFromAxis(unsigned adsport,
+                                 unsigned indexGroup,
+                                 unsigned indexOffset,
+                                 int *value);
 
   asynStatus getADRValueFromAxis(unsigned adsport,
                                  unsigned indexGroup,
