@@ -720,7 +720,7 @@ fOldVelocity:=fVelocity;
 
 (*Busy*)
 bMovingRelOrAbs := (nCommand = 2 OR nCommand = 3) AND NOT axis.Status.InTargetPosition;
-bBusy:=Axis.Status.HasJob OR Axis.Status.HomingBusy OR bChangingDirection OR  bMovingRelOrAbs;
+bBusy:=(Axis.Status.HasJob OR Axis.Status.HomingBusy OR bChangingDirection OR  bMovingRelOrAbs) AND NOT bError;
 
 (*Enabled*)
 bEnabled:=fbPower.Status;
