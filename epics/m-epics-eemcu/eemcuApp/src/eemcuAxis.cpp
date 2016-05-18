@@ -842,6 +842,8 @@ asynStatus eemcuAxis::stopAxisInternal(const char *function_name, double acceler
 {
   asynStatus status;
   drvlocal.nCommand = 0;
+  asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+            "stopAxisInternal(%d) (%s)\n",  axisNo_, function_name);
   status = setValueOnAxisVerify("bExecute", "bExecute", 0, 1);
   if (status) drvlocal.mustStop = 1;
   return status;
@@ -882,9 +884,6 @@ void eemcuAxis::callParamCallbacksUpdateError()
   if (drvlocal.eeAxisError != drvlocal.old_eeAxisError ||
       drvlocal.old_EPICS_nErrorId != EPICS_nErrorId) {
 
-    drvlocal.old_eeAxisError = drvlocal.eeAxisError;
-    drvlocal.old_EPICS_nErrorId = EPICS_nErrorId;
-
     if (!EPICS_nErrorId) setStringParam(pC_->eemcuErrMsg_, "");
 
     switch (drvlocal.eeAxisError) {
@@ -897,15 +896,21 @@ void eemcuAxis::callParamCallbacksUpdateError()
     default:
       ;
     }
-  }
-  /* Axis has a problem: Report to motor record */
-  setIntegerParam(pC_->motorStatusProblem_,
-                  drvlocal.eeAxisError != eeAxisErrorNoError);
+    /* Axis has a problem: Report to motor record */
+    setIntegerParam(pC_->motorStatusProblem_,
+                    drvlocal.eeAxisError != eeAxisErrorNoError);
 
-  /* MCU has a problem: set the red light in CSS */
-  setIntegerParam(pC_->eemcuErr_,
-                  drvlocal.eeAxisError == eeAxisErrorMCUError);
-  setIntegerParam(pC_->eemcuErrId_, EPICS_nErrorId);
+    /* MCU has a problem: set the red light in CSS */
+    setIntegerParam(pC_->eemcuErr_,
+                    drvlocal.eeAxisError == eeAxisErrorMCUError);
+    setIntegerParam(pC_->eemcuErrId_, EPICS_nErrorId);
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "poll(%d) callParamCallbacksUpdateError drvlocal.eeAxisError=%d\n",
+              axisNo_, drvlocal.eeAxisError);
+    drvlocal.old_eeAxisError = drvlocal.eeAxisError;
+    drvlocal.old_EPICS_nErrorId = EPICS_nErrorId;
+  }
+
   callParamCallbacks();
 }
 
@@ -1057,18 +1062,30 @@ asynStatus eemcuAxis::poll(bool *moving)
     if (!comStatus) setDoubleParam(pC_->motorEncoderPosition_, fEncPosition);
   }
 
-  if (drvlocal.oldNowMoving != nowMoving) {
-    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-              "poll(%d) nowMoving=%d bBusy=%d bExecute=%d fActPosition=%g\n",
-              axisNo_, nowMoving,
-              st_axis_status.bBusy, st_axis_status.bExecute, st_axis_status.fActPosition);
-    drvlocal.oldNowMoving = nowMoving;
-  }
   if (drvlocal.waitNumPollsBeforeReady) {
     /* Don't update moving, done, motorStatusProblem_ */
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "poll(%d) nowMoving=%d bBusy=%d bExecute=%d waitNumPollsBeforeReady=%d\n",
+              axisNo_, nowMoving,
+              st_axis_status.bBusy, st_axis_status.bExecute,
+              drvlocal.waitNumPollsBeforeReady);
+    if (nowMoving) {
+      /* But if we are moving, tell it */
+      setIntegerParam(pC_->motorStatusMoving_, nowMoving);
+      setIntegerParam(pC_->motorStatusDone_, !nowMoving);
+    }
+
+
     drvlocal.waitNumPollsBeforeReady--;
     callParamCallbacks();
   } else {
+    if (drvlocal.oldNowMoving != nowMoving) {
+      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+                "poll(%d) nowMoving=%d bBusy=%d bExecute=%d fActPosition=%g\n",
+                axisNo_, nowMoving,
+                st_axis_status.bBusy, st_axis_status.bExecute, st_axis_status.fActPosition);
+      drvlocal.oldNowMoving = nowMoving;
+    }
     setIntegerParam(pC_->motorStatusMoving_, nowMoving);
     setIntegerParam(pC_->motorStatusDone_, !nowMoving);
 
