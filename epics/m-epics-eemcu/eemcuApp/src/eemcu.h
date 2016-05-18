@@ -65,7 +65,7 @@ public:
   asynStatus moveVelocity(double min_velocity, double max_velocity, double acceleration);
   asynStatus home(double min_velocity, double max_velocity, double acceleration, int forwards);
   asynStatus stop(double acceleration);
-  void       callParamCallbacksWrapper();
+  void       callParamCallbacksUpdateError();
   asynStatus pollAll(bool *moving);
   asynStatus pollAll(bool *moving, st_axis_status_type *pst_axis_status);
   asynStatus poll(bool *moving);

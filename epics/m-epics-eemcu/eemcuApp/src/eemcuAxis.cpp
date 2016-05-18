@@ -113,7 +113,7 @@ asynStatus eemcuAxis::handleDisconnect()
   }
   memset(&drvlocal.dirty, 0xFF, sizeof(drvlocal.dirty));
   setIntegerParam(pC_->motorStatusCommsError_, 1);
-  callParamCallbacksWrapper();
+  callParamCallbacksUpdateError();
   return status;
 }
 
@@ -855,7 +855,7 @@ asynStatus eemcuAxis::stop(double acceleration )
   return stopAxisInternal(__FUNCTION__, acceleration);
 }
 
-void eemcuAxis::callParamCallbacksWrapper()
+void eemcuAxis::callParamCallbacksUpdateError()
 {
   int EPICS_nErrorId = drvlocal.MCU_nErrorId;
   drvlocal.eeAxisError = eeAxisErrorNoError;
@@ -897,7 +897,6 @@ void eemcuAxis::callParamCallbacksWrapper()
     default:
       ;
     }
-
   }
   /* Axis has a problem: Report to motor record */
   setIntegerParam(pC_->motorStatusProblem_,
@@ -997,7 +996,7 @@ asynStatus eemcuAxis::poll(bool *moving)
   if (drvlocal.dirty.initialUpdate) {
     comStatus = initialUpdate();
     if (comStatus) {
-      callParamCallbacksWrapper();
+      callParamCallbacksUpdateError();
       return asynError;
     }
     if (drvlocal.dirty.oldStatusDisconnected) {
@@ -1032,11 +1031,8 @@ asynStatus eemcuAxis::poll(bool *moving)
 
   nowMoving = st_axis_status.bBusy && st_axis_status.bExecute && st_axis_status.bEnabled;
   if (drvlocal.waitNumPollsBeforeReady) {
-    drvlocal.waitNumPollsBeforeReady--;
     *moving = true;
   } else {
-    setIntegerParam(pC_->motorStatusMoving_, nowMoving);
-    setIntegerParam(pC_->motorStatusDone_, !nowMoving);
     *moving = nowMoving ? true : false;
     if (!nowMoving) drvlocal.nCommand = 0;
   }
@@ -1068,27 +1064,35 @@ asynStatus eemcuAxis::poll(bool *moving)
               st_axis_status.bBusy, st_axis_status.bExecute, st_axis_status.fActPosition);
     drvlocal.oldNowMoving = nowMoving;
   }
-  drvlocal.MCU_nErrorId = st_axis_status.nErrorId;
-  if (drvlocal.old_bError != st_axis_status.bError ||
-      drvlocal.old_MCU_nErrorId != drvlocal.MCU_nErrorId ||
-      drvlocal.dirty.sErrorMessage) {
-    char sErrorMessage[256];
-    memset(&sErrorMessage[0], 0, sizeof(sErrorMessage));
-    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-              "poll(%d) bError=%d st_axis_status.nErrorId=0x%x\n",
-              axisNo_, st_axis_status.bError,
-              st_axis_status.nErrorId);
-    drvlocal.old_bError = st_axis_status.bError;
-    drvlocal.old_MCU_nErrorId = st_axis_status.nErrorId;
-    drvlocal.dirty.sErrorMessage = 0;
-    if (st_axis_status.nErrorId) {
-      asynStatus status;
-      status = getStringFromAxis("sErrorMessage", (char *)&sErrorMessage[0], sizeof(sErrorMessage));
-      if (status == asynSuccess) setStringParam(pC_->eemcuErrMsg_, sErrorMessage);
-    }
-  }
+  if (drvlocal.waitNumPollsBeforeReady) {
+    /* Don't update moving, done, motorStatusProblem_ */
+    drvlocal.waitNumPollsBeforeReady--;
+    callParamCallbacks();
+  } else {
+    setIntegerParam(pC_->motorStatusMoving_, nowMoving);
+    setIntegerParam(pC_->motorStatusDone_, !nowMoving);
 
-  callParamCallbacksWrapper();
+    drvlocal.MCU_nErrorId = st_axis_status.nErrorId;
+    if (drvlocal.old_bError != st_axis_status.bError ||
+        drvlocal.old_MCU_nErrorId != drvlocal.MCU_nErrorId ||
+        drvlocal.dirty.sErrorMessage) {
+      char sErrorMessage[256];
+      memset(&sErrorMessage[0], 0, sizeof(sErrorMessage));
+      asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+                "poll(%d) bError=%d st_axis_status.nErrorId=0x%x\n",
+                axisNo_, st_axis_status.bError,
+                st_axis_status.nErrorId);
+      drvlocal.old_bError = st_axis_status.bError;
+      drvlocal.old_MCU_nErrorId = st_axis_status.nErrorId;
+      drvlocal.dirty.sErrorMessage = 0;
+      if (st_axis_status.nErrorId) {
+        asynStatus status;
+        status = getStringFromAxis("sErrorMessage", (char *)&sErrorMessage[0], sizeof(sErrorMessage));
+        if (status == asynSuccess) setStringParam(pC_->eemcuErrMsg_, sErrorMessage);
+      }
+    }
+    callParamCallbacksUpdateError();
+  }
   return asynSuccess;
 
   skip:
