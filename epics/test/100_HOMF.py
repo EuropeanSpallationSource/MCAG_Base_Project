@@ -114,8 +114,12 @@ class Test(unittest.TestCase):
     # Home the motor
     def test_TC_100(self):
         tc_no = "TC-100"
-        print '%s Home the motor forward' % tc_no
-        self.m1.put('HOMF', 1)
+        print '%s Home the motor' % tc_no
+	msta = int(self.m1.get('MSTA'))
+        if (msta & self.MSTA_BIT_PLUS_LS):
+            self.m1.put('HOMR', 1)
+        else:
+            self.m1.put('HOMF', 1)
         time_to_wait = 30
         if self.range_postion > 0 and self.homing_velocity > 0:
             time_to_wait = 1 + self.range_postion / self.homing_velocity + 2 * self.acceleration

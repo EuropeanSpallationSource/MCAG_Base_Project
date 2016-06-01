@@ -93,7 +93,8 @@ def homeTheMotor(tself, motor, tc_no, procHome, jogToLSBefore):
                      tself.moving_velocity, tself.acceleration)
 
     tself.pv_ProcHom.put(procHome)
-    if jogToLSBefore > 0:
+    msta = int(motor.get('MSTA'))
+    if (msta & tself.MSTA_BIT_PLUS_LS):
         motor.put('HOMR', 1)
     else:
         motor.put('HOMF', 1)
