@@ -2,8 +2,8 @@
 FILENAME...   eemcu.h
 */
 
-#include "asynMotorController.h"
-#include "asynMotorAxis.h"
+#include "asynAxisController.h"
+#include "asynAxis.h"
 
 #define AMPLIFIER_ON_FLAG_CREATE_AXIS  (1)
 #define AMPLIFIER_ON_FLAG_WHEN_HOMING  (1<<1)
@@ -54,7 +54,7 @@ typedef struct {
   int bBusy;             /* 23 */
 } st_axis_status_type;
 
-class epicsShareClass eemcuAxis : public asynMotorAxis
+class epicsShareClass eemcuAxis : public asynAxis
 {
 public:
   /* These are the methods we override from the base class */
@@ -79,7 +79,7 @@ private:
     eeAxisErrorIOCcfgError,
     eeAxisErrorIOCError
   } eeAxisErrorType;
-  eemcuController *pC_;          /**< Pointer to the asynMotorController to which this axis belongs.
+  eemcuController *pC_;          /**< Pointer to the asynAxisController to which this axis belongs.
                                    *   Abbreviated because it is used very frequently */
   struct {
     double mres;
@@ -186,7 +186,7 @@ private:
   friend class eemcuController;
 };
 
-class epicsShareClass eemcuController : public asynMotorController {
+class epicsShareClass eemcuController : public asynAxisController {
 public:
   eemcuController(const char *portName, const char *eemcuPortName, int numAxes, double movingPollPeriod, double idlePollPeriod);
 

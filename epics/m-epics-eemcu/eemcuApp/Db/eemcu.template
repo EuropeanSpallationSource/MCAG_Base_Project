@@ -1,4 +1,4 @@
-record(motor,"$(P)$(M)")
+record(axis,"$(P)$(M)")
 {
 	field(DESC,"$(DESC)")
 	field(DTYP,"$(DTYP)")

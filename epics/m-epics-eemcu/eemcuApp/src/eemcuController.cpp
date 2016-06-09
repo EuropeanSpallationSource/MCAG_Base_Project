@@ -11,12 +11,10 @@ FILENAME... eemcuController.cpp
 #include <epicsThread.h>
 
 #include <asynOctetSyncIO.h>
-
-#include "asynMotorController.h"
-#include "asynMotorAxis.h"
-
 #include <epicsExport.h>
+
 #include "eemcu.h"
+
 
 /** Creates a new eemcuController object.
   * \param[in] portName          The name of the asyn port that will be created for this driver
@@ -27,7 +25,7 @@ FILENAME... eemcuController.cpp
   */
 eemcuController::eemcuController(const char *portName, const char *MotorPortName, int numAxes,
                                                double movingPollPeriod,double idlePollPeriod)
-  :  asynMotorController(portName, numAxes, NUM_VIRTUAL_MOTOR_PARAMS,
+  :  asynAxisController(portName, numAxes, NUM_VIRTUAL_MOTOR_PARAMS,
                          0, // No additional interfaces beyond those in base class
                          0, // No additional callback interfaces beyond those in base class
                          ASYN_CANBLOCK | ASYN_MULTIDEVICE,
@@ -45,7 +43,7 @@ eemcuController::eemcuController(const char *portName, const char *MotorPortName
   createParam(eemcuJVELString,          asynParamFloat64,     &eemcuJVEL_);
 
 #ifdef CREATE_MOTOR_REC_RESOLUTION
-  /* Latest asynMotorController does this, but not the version in 6.81 (or 6.9x) */
+  /* Latest asynAxisController does this, but not the version in 6.81 (or 6.9x) */
   createParam(motorRecResolutionString,        asynParamFloat64,      &motorRecResolution_);
   createParam(motorRecDirectionString,           asynParamInt32,      &motorRecDirection_);
   createParam(motorRecOffsetString,            asynParamFloat64,      &motorRecOffset_);
@@ -140,7 +138,7 @@ void eemcuController::handleStatusChange(asynStatus status)
   * \param[in] level The level of report detail desired
   *
   * If details > 0 then information is printed about each axis.
-  * After printing controller-specific information it calls asynMotorController::report()
+  * After printing controller-specific information it calls asynAxisController::report()
   */
 void eemcuController::report(FILE *fp, int level)
 {
@@ -148,7 +146,7 @@ void eemcuController::report(FILE *fp, int level)
     this->portName, numAxes_, movingPollPeriod_, idlePollPeriod_);
 
   // Call the base class method
-  asynMotorController::report(fp, level);
+  asynAxisController::report(fp, level);
 }
 
 /** Returns a pointer to an eemcuAxis object.
@@ -156,7 +154,7 @@ void eemcuController::report(FILE *fp, int level)
   * \param[in] pasynUser asynUser structure that encodes the axis index number. */
 eemcuAxis* eemcuController::getAxis(asynUser *pasynUser)
 {
-  return static_cast<eemcuAxis*>(asynMotorController::getAxis(pasynUser));
+  return static_cast<eemcuAxis*>(asynAxisController::getAxis(pasynUser));
 }
 
 /** Returns a pointer to an eemcuAxis object.
@@ -164,7 +162,7 @@ eemcuAxis* eemcuController::getAxis(asynUser *pasynUser)
   * \param[in] axisNo Axis index number. */
 eemcuAxis* eemcuController::getAxis(int axisNo)
 {
-  return static_cast<eemcuAxis*>(asynMotorController::getAxis(axisNo));
+  return static_cast<eemcuAxis*>(asynAxisController::getAxis(axisNo));
 }
 
 
@@ -176,7 +174,7 @@ asynStatus eemcuController::writeInt32(asynUser *pasynUser, epicsInt32 value)
   if (!pAxis) return asynError;
 
   (void)pAxis->setIntegerParam(function, value);
-  return asynMotorController::writeInt32(pasynUser, value);
+  return asynAxisController::writeInt32(pasynUser, value);
 }
 
 /** Code for iocsh registration */

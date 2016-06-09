@@ -41,7 +41,7 @@
  */
 eemcuAxis::eemcuAxis(eemcuController *pC, int axisNo,
                      int axisFlags, const char *axisOptionsStr)
-  : asynMotorAxis(pC, axisNo),
+  : asynAxis(pC, axisNo),
     pC_(pC)
 {
   memset(&drvlocal, 0, sizeof(drvlocal));
@@ -281,7 +281,7 @@ asynStatus eemcuAxis::initialUpdate(void)
  * \param[in] fp The file pointer on which report information will be written
  * \param[in] level The level of report detail desired
  *
- * After printing device-specific information calls asynMotorAxis::report()
+ * After printing device-specific information calls asynAxis::report()
  */
 void eemcuAxis::report(FILE *fp, int level)
 {
@@ -290,7 +290,7 @@ void eemcuAxis::report(FILE *fp, int level)
   }
 
   // Call the base class method
-  asynMotorAxis::report(fp, level);
+  asynAxis::report(fp, level);
 }
 
 
@@ -1139,7 +1139,7 @@ asynStatus eemcuAxis::setIntegerParam(int function, int value)
   }
 
   //Call base class method
-  status = asynMotorAxis::setIntegerParam(function, value);
+  status = asynAxis::setIntegerParam(function, value);
   return status;
 }
 
@@ -1275,7 +1275,7 @@ asynStatus eemcuAxis::setDoubleParam(int function, double value)
   }
 
   // Call the base class method
-  status = asynMotorAxis::setDoubleParam(function, value);
+  status = asynAxis::setDoubleParam(function, value);
   return status;
 }
 
@@ -1295,7 +1295,7 @@ asynStatus eemcuAxis::setStringParam(int function, const char *value)
 #endif
 
   /* Call base class method */
-  status = asynMotorAxis::setStringParam(function, value);
+  status = asynAxis::setStringParam(function, value);
 #endif
   return status;
 }

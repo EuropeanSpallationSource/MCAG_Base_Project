@@ -19,7 +19,7 @@ eemcu_DBD += base.dbd
 #eemcu_DBD += xxx.dbd
 eemcu_DBD += asyn.dbd
 eemcu_DBD += drvAsynIPPort.dbd
-eemcu_DBD += motorSupport.dbd
+eemcu_DBD += axisSupport.dbd
 eemcu_DBD += eemcuController.dbd
 
 # Add source files
@@ -28,7 +28,7 @@ eemcu_SRCS += eemcuAxis.cpp
 
 # Add all the support libraries needed by this IOC
 eemcu_LIBS += asyn
-eemcu_LIBS += motor
+eemcu_LIBS += axis
 
 # eemcu_registerRecordDeviceDriver.cpp derives from eemcu.dbd
 eemcu_SRCS += eemcu_registerRecordDeviceDriver.cpp

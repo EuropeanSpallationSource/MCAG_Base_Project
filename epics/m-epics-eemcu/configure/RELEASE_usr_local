@@ -28,7 +28,7 @@ TEMPLATE_TOP=$(EPICS_BASE)/templates/makeBaseApp/top
 EPICS_BASE=/opt/codac-4.1/epics/base
 
 ASYN=$(EPICS_BASE)/../modules/asyn
-MOTOR=$(EPICS_BASE)/../modules/motor
+AXIS=$(EPICS_BASE)/../modules/axis
 # Set RULES here if you want to take build rules from somewhere
 # other than EPICS_BASE:
 #RULES=/path/to/epics/support/module/rules/x-y
