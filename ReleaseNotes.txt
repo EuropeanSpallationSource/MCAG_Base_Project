@@ -1,6 +1,22 @@
 ReleaseNotes:
 (This is a very rough overview, the real truth is in "git log")
 
+v0.9.6
+  Create SolAxis-48-1.cfg, which configures more parameters in the MCU,
+    e.g. the homing velocities, to and from the home switch,
+    sometimes called cam.
+    Remve the connection from EPICS JVEL and HVEL to the MCU,
+    in other words, HVEL is now unused in EPICS.
+ Improve the error reporting:
+   callParamCallbacksUpdateError is used to forward an error to
+   EPICS. To be more exact, into the PROBLEM bit.
+   Need to change the bBusy handling, but I'm not sure if this change
+   was needed, since the motorrecord had been changed as well:
+     https://bitbucket.org/europeanspallationsource/m-epics-motor/commits/77742621428addf8b219ecef2006952174885bfd?at=master
+   or
+    https://github.com/EuropeanSpallationSource/motor/commit/77742621428addf8b219ecef2006952174885bfd
+ Update the simulator and test scripts
+
 v0.9.5
   Add a config file for the axis connected to 192.68.88.48.
   Improve the reading: check if a setting is already as it
