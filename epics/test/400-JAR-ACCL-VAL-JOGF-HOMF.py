@@ -86,8 +86,8 @@ class Test(unittest.TestCase):
 
 
     # 10% dialPosition
-    def test_TC_301(self):
-        tc_no = "TC-301-10-percent-dialPosition"
+    def test_TC_401(self):
+        tc_no = "TC-401-10-percent-dialPosition"
         print '%s' % tc_no
         dval =  (self.saved_DHLM + 9 * self.saved_DLLM) / 10
         ret = self.motm1.move(dval, dial=True, wait=True)
@@ -97,8 +97,8 @@ class Test(unittest.TestCase):
         assert calcAlmostEqual(self.motm1, tc_no, dval, drbv, 2)
 
     # 20% dialPosition
-    def test_TC_302(self):
-        tc_no = "TC-302-20-percent-dialPosition"
+    def test_TC_402(self):
+        tc_no = "TC-402-20-percent-dialPosition"
         print '%s' % tc_no
         motm1 = self.motm1
         saved_ACCL = motm1.get('ACCL')
@@ -121,9 +121,9 @@ class Test(unittest.TestCase):
         assert calcAlmostEqual(self.motm1, tc_no, dval, drbv, 2)
 
 
-    # 30% dialPosition
-    def test_TC_303(self):
-        tc_no = "TC-303-30-percent-dialPosition"
+    # 40% dialPosition
+    def test_TC_403(self):
+        tc_no = "TC-403-30-percent-dialPosition"
         print '%s' % tc_no
         motm1 = self.motm1
         saved_ACCL = motm1.get('ACCL')
@@ -147,8 +147,8 @@ class Test(unittest.TestCase):
 
 
     # Jog, wait for start, stop. check fAcceleration
-    def test_TC_304(self):
-        tc_no = "TC-304-JOG-fAcceleration"
+    def test_TC_404(self):
+        tc_no = "TC-404-JOG-fAcceleration"
         print '%s' % tc_no
         motm1 = self.motm1
         saved_ACCL = motm1.get('ACCL')
@@ -171,8 +171,8 @@ class Test(unittest.TestCase):
         assert calcAlmostEqual(self.motm1, tc_no, expacc, resacc, 2)
 
     # Jog, wait for start, stop. check fAcceleration
-    def test_TC_305(self):
-        tc_no = "TC-305-JOG-fAcceleration"
+    def test_TC_405(self):
+        tc_no = "TC-405-JOG-fAcceleration"
         print '%s' % tc_no
         motm1 = self.motm1
         saved_JAR = motm1.get('JAR')
@@ -193,33 +193,4 @@ class Test(unittest.TestCase):
         resacc = float(getAcceleration(tc_no))
         print '%s expacc=%f resacc=%f' % (tc_no,expacc,resacc)
         assert calcAlmostEqual(self.motm1, tc_no, expacc, resacc, 2)
-
-#    # HOMF
-# TODO: Send acceleration when homing in Axis.cpp and test it here
-# 
-#    def test_TC_306(self):
-#        tc_no = "TC-306-20-HOMF-acceleration"
-#        print '%s' % tc_no
-#        motm1 = self.motm1
-#        saved_ACCL = motm1.get('ACCL')
-#        used_ACCL = saved_ACCL + 1.5 # Make sure we have an acceleration != 0
-#        motm1.put('ACCL', used_ACCL)
-#        motm1.put('HOMF', 1)
-#        ret = waitForStart(self.motm1, tc_no, 2.0)
-#        self.assertEqual(True, ret, 'waitForStart return True')
-#
-#        time_to_wait = 180
-#        ret = waitForStop(self.motm1, tc_no, time_to_wait)
-#        self.assertEqual(True, ret, 'waitForStop return True')
-#        motm1.put('HOMF', 0)
-#
-#        motm1.put('ACCL', saved_ACCL)
-#        saved_ACCL = None
-#
-#        used_HVEL = motm1.get('HVEL')
-#        expacc = used_HVEL / used_ACCL
-#        resacc = float(getAcceleration(tc_no))
-#        print '%s ACCL=%f HVEL=%f expacc=%f resacc=%f' % (tc_no,used_ACCL,used_HVEL,expacc,resacc)
-#        assert calcAlmostEqual(self.motm1, tc_no, expacc, resacc, 2)
-
 

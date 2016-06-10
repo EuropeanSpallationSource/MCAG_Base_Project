@@ -10,4 +10,5 @@ TEMPLATES = \
   eemcuApp/Db/eemcu-extra.template
 
 MISCS = \
-  iocBoot/ioceemcu/SolAxis-48.cfg
+  iocBoot/ioceemcu/SolAxis-48.cfg \
+  iocBoot/ioceemcu/SolAxis-48-1.cfg

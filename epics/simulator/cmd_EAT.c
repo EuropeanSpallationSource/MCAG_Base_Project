@@ -21,7 +21,16 @@ typedef struct
   double acceleration;
   double homeVeloTowardsHomeSensor;
   double homeVeloFromHomeSensor;
+  double manualVelocitySlow;
+  double manualVelocityFast;
+  double maximumVelocity;
+  double referenceVelocity;
+  double positionLagMonitoringValue;
+  double positionLagFilterTime;
+  double deadTimeCompensation;
+  int    positionLagMonitorEnable;
   unsigned nErrorId;
+  int inTargetPositionMonitoring;
 } cmd_Motor_cmd_type;
 
 static cmd_Motor_cmd_type cmd_Motor_cmd[MAX_AXES];
@@ -36,8 +45,8 @@ static void init_axis(int axis_no)
     return;
   }
   if (!init_done[axis_no]) {
-    double valueLow = -141.0 * ReverseMRES;
-    double valueHigh = 14.0 * ReverseMRES;
+    double valueLow = -30.0 * ReverseMRES;
+    double valueHigh = 140.0 * ReverseMRES;
     hw_motor_init(axis_no);
     setMotorReverseERES(axis_no, MRES/ERES);
     setMotorParkingPosition(axis_no, (-64 + axis_no/10.0) * ReverseMRES); /* steps */
@@ -63,7 +72,20 @@ static int motorHandleADS_ADR_getInt(unsigned adsport,
                                      unsigned indexOffset,
                                      int *iValue)
 {
-  if (indexGroup == 0x3040010 && indexOffset == 0x80000049) {
+  if (indexGroup >= 0x4000 && indexGroup < 0x5000) {
+    int motor_axis_no = (int)indexGroup - 0x4000;
+    switch(indexOffset)
+      case 0x15:
+      *iValue = cmd_Motor_cmd[motor_axis_no].inTargetPositionMonitoring;
+      return 0; /* Monitor */
+  } else if (indexGroup >= 0x6000 && indexGroup < 0x7000) {
+    int motor_axis_no = (int)indexGroup - 0x6000;
+    switch(indexOffset) {
+      case 0x10:
+        *iValue = cmd_Motor_cmd[motor_axis_no].positionLagMonitorEnable;
+        return 0;
+    }
+  } else if (indexGroup == 0x3040010 && indexOffset == 0x80000049) {
     *iValue = (int)getEncoderPos(1);
     return 0;
   }
@@ -94,9 +116,17 @@ static int motorHandleADS_ADR_putInt(unsigned adsport,
     }
   }
   if (indexGroup >= 0x4000 && indexGroup < 0x5000) {
-    //int motor_axis_no = (int)indexGroup - 0x4000;
+    int motor_axis_no = (int)indexGroup - 0x4000;
     if (indexOffset == 0x15) {
-      return 0; /* Monitor */
+      cmd_Motor_cmd[motor_axis_no].inTargetPositionMonitoring = iValue;
+      return 0;
+    }
+  } else if (indexGroup >= 0x6000 && indexGroup < 0x7000) {
+    int motor_axis_no = (int)indexGroup - 0x6000;
+    switch(indexOffset) {
+      case 0x10:
+        cmd_Motor_cmd[motor_axis_no].positionLagMonitorEnable = iValue;
+        return 0;
     }
   }
 
@@ -112,7 +142,29 @@ static int motorHandleADS_ADR_getFloat(unsigned adsport,
                                        unsigned indexOffset,
                                        double *fValue)
 {
-  if (indexGroup >= 0x5000 && indexGroup < 0x6000) {
+  if (indexGroup >= 0x4000 && indexGroup < 0x5000) {
+    int motor_axis_no = (int)indexGroup - 0x4000;
+    switch(indexOffset) {
+    case 0x6:
+      *fValue = cmd_Motor_cmd[motor_axis_no].homeVeloTowardsHomeSensor;
+      return 0;
+    case 0x7:
+      *fValue = cmd_Motor_cmd[motor_axis_no].homeVeloFromHomeSensor;
+      return 0;
+    case 0x8:
+      *fValue = cmd_Motor_cmd[motor_axis_no].manualVelocitySlow;
+      return 0;
+    case 0x9:
+      *fValue = cmd_Motor_cmd[motor_axis_no].manualVelocityFast;
+      return 0;
+    case 0x27:
+      *fValue = cmd_Motor_cmd[motor_axis_no].maximumVelocity;
+      return 0;
+    case 0x104:
+      *fValue = cmd_Motor_cmd[motor_axis_no].deadTimeCompensation;
+      return 0;
+    }
+  } else if (indexGroup >= 0x5000 && indexGroup < 0x6000) {
     int motor_axis_no = (int)indexGroup - 0x5000;
     switch(indexOffset) {
       case 0xD:
@@ -128,6 +180,24 @@ static int motorHandleADS_ADR_getFloat(unsigned adsport,
         *fValue = getMRES_24(motor_axis_no);
         return 0;
     }
+  } else if (indexGroup >= 0x6000 && indexGroup < 0x7000) {
+    int motor_axis_no = (int)indexGroup - 0x6000;
+    switch(indexOffset) {
+      case 0x12:
+        *fValue = cmd_Motor_cmd[motor_axis_no].positionLagMonitoringValue;
+        return 0;
+      case 0x13:
+        *fValue = cmd_Motor_cmd[motor_axis_no].positionLagFilterTime;
+        return 0;
+    }
+  } else if (indexGroup >= 0x7000 && indexGroup < 0x8000) {
+    int motor_axis_no = (int)indexGroup - 0x7000;
+    switch(indexOffset) {
+    case 0x101:
+      *fValue = cmd_Motor_cmd[motor_axis_no].referenceVelocity;
+      return 0;
+    }
+
   }
   return -1;
 }
@@ -141,7 +211,29 @@ static int motorHandleADS_ADR_putFloat(unsigned adsport,
                                        unsigned indexOffset,
                                        double fValue)
 {
-  if (indexGroup >= 0x5000 && indexGroup < 0x6000) {
+  if (indexGroup >= 0x4000 && indexGroup < 0x5000) {
+    int motor_axis_no = (int)indexGroup - 0x4000;
+    switch(indexOffset) {
+    case 0x6:
+      cmd_Motor_cmd[motor_axis_no].homeVeloTowardsHomeSensor = fValue;
+      return 0;
+    case 0x7:
+      cmd_Motor_cmd[motor_axis_no].homeVeloFromHomeSensor = fValue;
+      return 0;
+    case 0x8:
+      cmd_Motor_cmd[motor_axis_no].manualVelocitySlow = fValue;
+      return 0;
+    case 0x9:
+      cmd_Motor_cmd[motor_axis_no].manualVelocityFast = fValue;
+      return 0;
+    case 0x27:
+      cmd_Motor_cmd[motor_axis_no].maximumVelocity = fValue;
+      return 0;
+    case 0x104:
+      cmd_Motor_cmd[motor_axis_no].deadTimeCompensation = fValue;
+      return 0;
+    }
+  } else if (indexGroup >= 0x5000 && indexGroup < 0x6000) {
     int motor_axis_no = (int)indexGroup - 0x5000;
     switch(indexOffset) {
       case 0xD:
@@ -155,15 +247,23 @@ static int motorHandleADS_ADR_putFloat(unsigned adsport,
       case 0x24:
         return setMRES_24(motor_axis_no, fValue);
     }
-  }
-  if (indexGroup >= 0x4000 && indexGroup < 0x5000) {
-    int motor_axis_no = (int)indexGroup - 0x4000;
-    if (indexOffset == 0x6) {
-      cmd_Motor_cmd[motor_axis_no].homeVeloTowardsHomeSensor = fValue;
-      return 0;
+  } else if (indexGroup >= 0x6000 && indexGroup < 0x7000) {
+    int motor_axis_no = (int)indexGroup - 0x6000;
+    (void)motor_axis_no;
+    switch(indexOffset) {
+      case 0x12:
+        cmd_Motor_cmd[motor_axis_no].positionLagMonitoringValue = fValue;
+        return 0;
+      case 0x13:
+        cmd_Motor_cmd[motor_axis_no].positionLagFilterTime = fValue;
+        return 0;
     }
-    if (indexOffset == 0x7) {
-      cmd_Motor_cmd[motor_axis_no].homeVeloFromHomeSensor = fValue;
+  } else if (indexGroup >= 0x7000 && indexGroup < 0x8000) {
+    int motor_axis_no = (int)indexGroup - 0x7000;
+    switch(indexOffset) {
+    (void)motor_axis_no;
+    case 0x101:
+      cmd_Motor_cmd[motor_axis_no].referenceVelocity = fValue ;
       return 0;
     }
   }
@@ -522,6 +622,17 @@ static void motorHandleOneArg(const char *myarg_1)
       cmd_buf_printf("OK");
       return;
     } else if (iValue == 1) {
+      if (cmd_Motor_cmd[motor_axis_no].velocity >
+          cmd_Motor_cmd[motor_axis_no].maximumVelocity) {
+        fprintf(stdlog, "%s/%s:%d axis_no=%d velocity=%g maximumVelocity=%g\n",
+                __FILE__, __FUNCTION__, __LINE__,
+                motor_axis_no,
+                cmd_Motor_cmd[motor_axis_no].velocity,
+                cmd_Motor_cmd[motor_axis_no].maximumVelocity);
+        set_nErrorId(motor_axis_no, 0x512);
+        cmd_buf_printf("OK");
+        return;
+      }
       switch (cmd_Motor_cmd[motor_axis_no].command_no) {
         case 1:
         {

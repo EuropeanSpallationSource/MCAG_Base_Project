@@ -31,7 +31,7 @@ asynSetTraceInfoMask("MC_CPU1", -1, 15)
 #define AMPLIFIER_ON_FLAG_WHEN_HOMING  (1<<1)
 #define AMPLIFIER_ON_FLAG_USING_CNEN   (1<<2)
 
-eemcuCreateAxis("MCU1", "1", "6", "cfgFile=SolAxis-48.cfg")
+eemcuCreateAxis("MCU1", "1", "6", "cfgFile=SolAxis-48-1.cfg")
 
 cd eemcuApp/Db
 dbLoadTemplate("SolAxis.substitutions")

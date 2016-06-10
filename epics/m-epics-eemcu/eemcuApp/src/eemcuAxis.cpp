@@ -706,17 +706,13 @@ asynStatus eemcuAxis::home(double minVelocity, double maxVelocity, double accele
   asynStatus status = asynSuccess;
   int motorHomeProc = -1;
   int nCommand = NCOMMANDHOME;
-  double homeVeloTowardsHomeSensor = 0;
 
-  if (status == asynSuccess) status = pC_->getDoubleParam(axisNo_,
-                                                          pC_->eemcuJVEL_,
-                                                          &homeVeloTowardsHomeSensor);
   if (status == asynSuccess) status = pC_->getIntegerParam(axisNo_,
                                                            pC_->eemcuProcHom_,
                                                            &motorHomeProc);
   asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-            "home() motorHomeProc=%d homeVeloTowardsHomeSensor=%g status=%s (%d)\n",
-            motorHomeProc, homeVeloTowardsHomeSensor,
+            "home() motorHomeProc=%d status=%s (%d)\n",
+            motorHomeProc,
             pasynManager->strStatus(status), (int)status);
 
   /* The controller will do the home search, and change its internal
@@ -728,12 +724,6 @@ asynStatus eemcuAxis::home(double minVelocity, double maxVelocity, double accele
   if (status == asynSuccess) status = setValueOnAxis("nCommand", nCommand );
   if (status == asynSuccess) drvlocal.nCommand = nCommand;
   if (status == asynSuccess) status = setValueOnAxis("nCmdData", motorHomeProc);
-  /* Use JVEL as velocity towards the home sensor, in EGU */
-  if (status == asynSuccess) status = setADRValueOnAxis(501, 0x4000, 0x6,
-                                                        homeVeloTowardsHomeSensor);
-  /* Use HVEL as velocity off the home sensor, in steps/sec */
-  if (status == asynSuccess) status = setADRValueOnAxis(501, 0x4000, 0x7,
-                                                        maxVelocity * drvlocal.mres);
   if (status == asynSuccess) status = setValueOnAxis("bExecute", 1);
   drvlocal.waitNumPollsBeforeReady += 2;
   return status;
