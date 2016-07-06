@@ -496,6 +496,9 @@ static void motorHandleOneArg(const char *myarg_1)
   }
   /* stAxisStatus? */
   if (0 == strcmp(myarg_1, "stAxisStatus?")) {
+    /* getMotorPos must be first, it calls
+       simulateMotion() */
+    double fActPostion = getMotorPos(motor_axis_no);
     int bEnable = getAmplifierOn(motor_axis_no);
     int bReset = 0;
     int bExecute = cmd_Motor_cmd[motor_axis_no].bExecute;
@@ -515,7 +518,6 @@ static void motorHandleOneArg(const char *myarg_1)
     int bError = get_bError(motor_axis_no);
     int nErrorId = get_nErrorId(motor_axis_no);
     double fActVelocity = getMotorVelocity(motor_axis_no);
-    double fActPostion = getMotorPos(motor_axis_no);
     double fActDiff = 0;
     int bHomed = getAxisHomed(motor_axis_no);
     int bBusy = isMotorMoving(motor_axis_no);
