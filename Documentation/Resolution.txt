@@ -1,0 +1,12 @@
+Motor/MRES:
+200  steps/Revolution
+64   Microstep/Revolution
+
+giving
+12800 == 64 * 200
+
+
+Encoder/ERES:
+2000 steps/Revolution
+
+

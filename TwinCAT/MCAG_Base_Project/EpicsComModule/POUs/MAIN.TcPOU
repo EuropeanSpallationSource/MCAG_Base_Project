@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.0.25">
-  <POU Name="MAIN" Id="{7b6efa2b-c8d0-4c9b-b40c-faa65e5b128e}">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.0.36">
+  <POU Name="MAIN" Id="{7b6efa2b-c8d0-4c9b-b40c-faa65e5b128e}" SpecialFunc="None">
     <Declaration><![CDATA[///#########################################################
 ///Main POU for TCP/IP based EPICS-interface. The TCP/IP server related code is based on Beckhoff sample code. Changes and additions have been made to this code for the general purpose EPICS interface.
 ///
@@ -25,7 +25,7 @@
 
 PROGRAM MAIN
 VAR
-	sVersion: STRING:='0.9.0';
+	sVersion: STRING:='0.9.1';
 END_VAR
 VAR
 	sSrvNetID	: T_AmsNetID	:= '';(* TwinCAT TCP/IP server network address *)
@@ -33,7 +33,7 @@ VAR
 	bLog		: BOOL := FALSE;(* TRUE => Enable message/error log, FALSE => Disable *)
 	
 	fbServer	: FB_Server := ( 	sLocalHost :=  '0.0.0.0' (*Own (server) IP address!  '192.168.40.106'*), 
-									nLocalPort := 200,(* Own (server) port number! *) 
+									nLocalPort := 5000,(* Own (server) port number! *) 
 									sPrefix := 'SERVER::' );
 
 	fbCloseAll	: FB_SocketCloseAll;
@@ -106,6 +106,7 @@ Utilities();
                           </o>
                           <v n="LValue">false</v>
                           <v n="Boolean">false</v>
+                          <v n="IsInstance">true</v>
                           <v n="Id">8L</v>
                         </o>
                         <o n="OutputItems" t="OutputItemList">
@@ -123,6 +124,7 @@ Utilities();
                               </o>
                               <v n="LValue">true</v>
                               <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
                               <v n="Id">10L</v>
                             </o>
                             <o>
@@ -137,6 +139,7 @@ Utilities();
                               </o>
                               <v n="LValue">true</v>
                               <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
                               <v n="Id">11L</v>
                             </o>
                           </l2>
@@ -160,6 +163,7 @@ Utilities();
                               </o>
                               <v n="LValue">false</v>
                               <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
                               <v n="Id">5L</v>
                             </o>
                             <v n="Id">4L</v>
@@ -177,6 +181,7 @@ Utilities();
                               </o>
                               <v n="LValue">false</v>
                               <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
                               <v n="Id">7L</v>
                             </o>
                             <v n="Id">6L</v>
@@ -194,6 +199,7 @@ Utilities();
                               </o>
                               <v n="LValue">false</v>
                               <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
                               <v n="Id">13L</v>
                             </o>
                             <v n="Id">12L</v>
@@ -211,6 +217,7 @@ Utilities();
                               </o>
                               <v n="LValue">false</v>
                               <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
                               <v n="Id">15L</v>
                             </o>
                             <v n="Id">14L</v>
@@ -245,6 +252,7 @@ Utilities();
                         <v n="CallType" t="Operator">FunctionBlock</v>
                         <v n="EN">false</v>
                         <v n="ENO">false</v>
+                        <n n="STSnippet" />
                         <v n="Id">9L</v>
                       </o>
                     </l2>
@@ -275,6 +283,7 @@ Utilities();
                           </o>
                           <v n="LValue">false</v>
                           <v n="Boolean">false</v>
+                          <v n="IsInstance">true</v>
                           <v n="Id">23L</v>
                         </o>
                         <o n="OutputItems" t="OutputItemList">
@@ -292,6 +301,7 @@ Utilities();
                               </o>
                               <v n="LValue">true</v>
                               <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
                               <v n="Id">25L</v>
                             </o>
                             <o>
@@ -306,6 +316,7 @@ Utilities();
                               </o>
                               <v n="LValue">true</v>
                               <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
                               <v n="Id">26L</v>
                             </o>
                           </l2>
@@ -329,6 +340,7 @@ Utilities();
                               </o>
                               <v n="LValue">false</v>
                               <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
                               <v n="Id">20L</v>
                             </o>
                             <v n="Id">19L</v>
@@ -346,6 +358,7 @@ Utilities();
                               </o>
                               <v n="LValue">false</v>
                               <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
                               <v n="Id">22L</v>
                             </o>
                             <v n="Id">21L</v>
@@ -363,6 +376,7 @@ Utilities();
                               </o>
                               <v n="LValue">false</v>
                               <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
                               <v n="Id">28L</v>
                             </o>
                             <v n="Id">27L</v>
@@ -395,6 +409,7 @@ Utilities();
                         <v n="CallType" t="Operator">FunctionBlock</v>
                         <v n="EN">false</v>
                         <v n="ENO">false</v>
+                        <n n="STSnippet" />
                         <v n="Id">24L</v>
                       </o>
                     </l2>
@@ -429,6 +444,5 @@ Utilities();
         </NWL>
       </Implementation>
     </Action>
-    <ObjectProperties />
   </POU>
 </TcPlcObject>

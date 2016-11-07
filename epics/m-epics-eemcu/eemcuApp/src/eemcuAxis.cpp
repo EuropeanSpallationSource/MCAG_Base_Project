@@ -686,6 +686,7 @@ asynStatus eemcuAxis::move(double position, int relative, double minVelocity, do
   if (status == asynSuccess) status = stopAxisInternal(__FUNCTION__, 0);
   if (status == asynSuccess) status = updateMresSoftLimitsIfDirty(__LINE__);
   if (status == asynSuccess) status = setValueOnAxis("nCommand", nCommand);
+  if (status == asynSuccess) status = setValueOnAxis("nCmdData", 0);
   if (status == asynSuccess) drvlocal.nCommand = nCommand;
   if (status == asynSuccess) status = setValueOnAxis("fPosition", position * drvlocal.mres);
   if (status == asynSuccess) status = sendVelocityAndAccelExecute(maxVelocity, acceleration);
@@ -711,8 +712,8 @@ asynStatus eemcuAxis::home(double minVelocity, double maxVelocity, double accele
                                                            pC_->eemcuProcHom_,
                                                            &motorHomeProc);
   asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
-            "home() motorHomeProc=%d status=%s (%d)\n",
-            motorHomeProc,
+            "home(%d) motorHomeProc=%d status=%s (%d)\n",
+            axisNo_, motorHomeProc,
             pasynManager->strStatus(status), (int)status);
 
   /* The controller will do the home search, and change its internal
@@ -743,12 +744,24 @@ asynStatus eemcuAxis::moveVelocity(double minVelocity, double maxVelocity, doubl
   if (status == asynSuccess) status = stopAxisInternal(__FUNCTION__, 0);
   if (status == asynSuccess) status = updateMresSoftLimitsIfDirty(__LINE__);
   if (status == asynSuccess) setValueOnAxis("nCommand", 1);
+  if (status == asynSuccess) status = setValueOnAxis("nCmdData", 0);
   if (status == asynSuccess) status = sendVelocityAndAccelExecute(maxVelocity, acceleration);
 
   return status;
 }
 
 
+
+/**
+ * See asynMotorAxis::setPosition
+ */
+asynStatus eemcuAxis::setPosition(double value)
+{
+  asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+            "setPosition(%d position=%g egu=%g\n",
+            axisNo_, value, value * drvlocal.mres);
+  return asynSuccess;
+}
 
 /** Set the low soft-limit on an axis
  *
@@ -889,7 +902,6 @@ void eemcuAxis::callParamCallbacksUpdateError()
     /* Axis has a problem: Report to motor record */
     setIntegerParam(pC_->motorStatusProblem_,
                     drvlocal.eeAxisError != eeAxisErrorNoError);
-
     /* MCU has a problem: set the red light in CSS */
     setIntegerParam(pC_->eemcuErr_,
                     drvlocal.eeAxisError == eeAxisErrorMCUError);
@@ -1016,12 +1028,8 @@ asynStatus eemcuAxis::poll(bool *moving)
   setIntegerParam(pC_->motorStatusHomed_, st_axis_status.bHomed);
   setIntegerParam(pC_->motorStatusCommsError_, 0);
   setIntegerParam(pC_->motorStatusAtHome_, st_axis_status.bHomeSensor);
-  if (drvlocal.nCommand != NCOMMANDHOME) {
-    /* Hide the limit switches while homing */
-    /* https://github.com/epics-modules/motor/pull/19 */
-    setIntegerParam(pC_->motorStatusLowLimit_, !st_axis_status.bLimitBwd);
-    setIntegerParam(pC_->motorStatusHighLimit_, !st_axis_status.bLimitFwd);
-  }
+  setIntegerParam(pC_->motorStatusLowLimit_, !st_axis_status.bLimitBwd);
+  setIntegerParam(pC_->motorStatusHighLimit_, !st_axis_status.bLimitFwd);
   setIntegerParam(pC_->motorStatusPowerOn_, st_axis_status.bEnabled);
 
   nowMoving = st_axis_status.bBusy && st_axis_status.bExecute && st_axis_status.bEnabled;
@@ -1032,18 +1040,18 @@ asynStatus eemcuAxis::poll(bool *moving)
     if (!nowMoving) drvlocal.nCommand = 0;
   }
 
-  if (drvlocal.nCommand != NCOMMANDHOME) {
+  {
     double newPositionInSteps = st_axis_status.fActPosition / drvlocal.mres;
     /* If not moving, trigger a record processing at low rate */
     if (!nowMoving) setDoubleParam(pC_->motorPosition_, newPositionInSteps + 1);
     setDoubleParam(pC_->motorPosition_, newPositionInSteps);
     /* Use previous fActPosition and current fActPosition to calculate direction.*/
-    if (st_axis_status.fActPosition > drvlocal.oldPosition) {
+    if (st_axis_status.fActPosition > drvlocal.old_st_axis_status.fActPosition) {
       setIntegerParam(pC_->motorStatusDirection_, 1);
-    } else if (st_axis_status.fActPosition < drvlocal.oldPosition) {
+    } else if (st_axis_status.fActPosition < drvlocal.old_st_axis_status.fActPosition) {
       setIntegerParam(pC_->motorStatusDirection_, 0);
     }
-    drvlocal.oldPosition = st_axis_status.fActPosition;
+    drvlocal.old_st_axis_status.fActPosition = st_axis_status.fActPosition;
   }
 
   if (drvlocal.externalEncoderStr) {
@@ -1052,6 +1060,25 @@ asynStatus eemcuAxis::poll(bool *moving)
     if (!comStatus) setDoubleParam(pC_->motorEncoderPosition_, fEncPosition);
   }
 
+  if (drvlocal.old_st_axis_status.bHomed != st_axis_status.bHomed) {
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "poll(%d) homed=%d\n", axisNo_, st_axis_status.bHomed);
+    drvlocal.old_st_axis_status.bHomed =  st_axis_status.bHomed;
+  }
+  if (drvlocal.old_st_axis_status.bLimitBwd != st_axis_status.bLimitBwd) {
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "poll(%d) LLS=%d\n", axisNo_, !st_axis_status.bLimitBwd);
+    drvlocal.old_st_axis_status.bLimitBwd =  st_axis_status.bLimitBwd;
+  }
+  if (drvlocal.old_st_axis_status.bLimitFwd != st_axis_status.bLimitFwd) {
+    asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
+              "poll(%d) HLS=%d\n", axisNo_,!st_axis_status.bLimitFwd);
+    drvlocal.old_st_axis_status.bLimitFwd = st_axis_status.bLimitFwd;
+  }
+
+  if (drvlocal.oldNowMoving != nowMoving) {
+    drvlocal.waitNumPollsBeforeReady = 0;
+  }
   if (drvlocal.waitNumPollsBeforeReady) {
     /* Don't update moving, done, motorStatusProblem_ */
     asynPrint(pC_->pasynUserController_, ASYN_TRACE_INFO,
@@ -1059,13 +1086,6 @@ asynStatus eemcuAxis::poll(bool *moving)
               axisNo_, nowMoving,
               st_axis_status.bBusy, st_axis_status.bExecute,
               drvlocal.waitNumPollsBeforeReady);
-    if (nowMoving) {
-      /* But if we are moving, tell it */
-      setIntegerParam(pC_->motorStatusMoving_, nowMoving);
-      setIntegerParam(pC_->motorStatusDone_, !nowMoving);
-    }
-
-
     drvlocal.waitNumPollsBeforeReady--;
     callParamCallbacks();
   } else {
@@ -1092,7 +1112,32 @@ asynStatus eemcuAxis::poll(bool *moving)
       drvlocal.old_bError = st_axis_status.bError;
       drvlocal.old_MCU_nErrorId = st_axis_status.nErrorId;
       drvlocal.dirty.sErrorMessage = 0;
-      if (st_axis_status.nErrorId) {
+      switch(st_axis_status.nErrorId) {
+        case 0x4223:
+          snprintf(sErrorMessage, sizeof(sErrorMessage)-1,
+                   "%x Axis positioning enable (sensor? limit?)",
+                   st_axis_status.nErrorId);
+          break;
+        case 0x4450:
+        case 0x4451:
+          snprintf(sErrorMessage, sizeof(sErrorMessage)-1,"%x Following error",
+                   st_axis_status.nErrorId);
+          break;
+        case 0x4260:
+          snprintf(sErrorMessage, sizeof(sErrorMessage)-1,"%x Amplifier off",
+                   st_axis_status.nErrorId);
+          break;
+        case 0x4B0A:
+          snprintf(sErrorMessage, sizeof(sErrorMessage)-1,
+                   "%x Homing not successful or not started (home sensor?)",
+                   st_axis_status.nErrorId);
+          break;
+        default:
+          break;
+      }
+      if (sErrorMessage[0]) {
+        setStringParam(pC_->eemcuErrMsg_, sErrorMessage);
+      } else if (!sErrorMessage[0] && st_axis_status.nErrorId) {
         asynStatus status;
         status = getStringFromAxis("sErrorMessage", (char *)&sErrorMessage[0], sizeof(sErrorMessage));
         if (status == asynSuccess) setStringParam(pC_->eemcuErrMsg_, sErrorMessage);

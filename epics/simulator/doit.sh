@@ -7,6 +7,6 @@ binary=simMotor
 
 if which valgrind >/dev/null 2>/dev/null; then
   valg='valgrind  --leak-check=full   --show-reachable=yes'
-fi 
+fi
 make && $valg ${uname_S}_${uname_M}_${uname_R}/$binary "$@"
 

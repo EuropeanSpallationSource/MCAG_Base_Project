@@ -49,7 +49,7 @@ static void init_axis(int axis_no)
     double valueHigh = 140.0 * ReverseMRES;
     hw_motor_init(axis_no);
     setMotorReverseERES(axis_no, MRES/ERES);
-    setMotorParkingPosition(axis_no, (-64 + axis_no/10.0) * ReverseMRES); /* steps */
+    setMotorParkingPosition(axis_no, (100 + axis_no/10.0) * ReverseMRES); /* steps */
     setMaxHomeVelocityAbs(axis_no, 5 * ReverseMRES);
     setLowHardLimitPos(axis_no,  valueLow);
     setHighHardLimitPos(axis_no, valueHigh);
@@ -57,6 +57,10 @@ static void init_axis(int axis_no)
     setHWlowPos (axis_no, valueLow);
     setHWhighPos(axis_no, valueHigh);
     setHWhomeSwitchpos(axis_no, 0);
+
+    cmd_Motor_cmd[axis_no].maximumVelocity = 50;
+    cmd_Motor_cmd[axis_no].homeVeloTowardsHomeSensor = 10;
+    cmd_Motor_cmd[axis_no].homeVeloFromHomeSensor = 5;
 
     init_done[axis_no] = 1;
   }

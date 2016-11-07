@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.0.25">
-  <POU Name="FB_ServerApplication" Id="{61c4cd1a-935d-4e48-8b22-86efe89dfec1}">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.0.36">
+  <POU Name="FB_ServerApplication" Id="{61c4cd1a-935d-4e48-8b22-86efe89dfec1}" SpecialFunc="None">
     <Declaration><![CDATA[///#########################################################
 ///FB that handles one EPICS connection of TCP/IP.
 /// The main functionallity of this function block is to parse commands from EPICS or other serial device.
@@ -24,7 +24,7 @@
 ///###########################################################
 FUNCTION_BLOCK FB_ServerApplication
 VAR
-	sVersion: STRING:='0.9.0';
+	sVersion: STRING:='0.9.1';
 	sFeatures: STRING:='stv1';
 END_VAR
 VAR_IN_OUT
@@ -598,6 +598,5 @@ bErrorOld:=bError;
 
 ]]></ST>
     </Implementation>
-    <ObjectProperties />
   </POU>
 </TcPlcObject>

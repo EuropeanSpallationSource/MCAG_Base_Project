@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.0.25">
-  <POU Name="FB_ServerConnection" Id="{47a014ee-06d6-4964-9a9a-be1fa4d97050}">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.0.36">
+  <POU Name="FB_ServerConnection" Id="{47a014ee-06d6-4964-9a9a-be1fa4d97050}" SpecialFunc="None">
     <Declaration><![CDATA[///#########################################################
 /// FB that handles one TCP/IP client connection. The code is based on Beckhoff sample code and only minor changes have been made for the EPICS interface.
 /// 
@@ -25,7 +25,7 @@
 ///###########################################################
 FUNCTION_BLOCK FB_ServerConnection
 VAR
-	sVersion: STRING:='0.9.0';
+	sVersion: STRING:='0.9.1';
 END_VAR
 VAR_IN_OUT
 	fbTx 			: FB_FrameFifo;(* TX fifo *)
@@ -293,6 +293,5 @@ CASE eStep OF
 END_CASE
 ]]></ST>
     </Implementation>
-    <ObjectProperties />
   </POU>
 </TcPlcObject>

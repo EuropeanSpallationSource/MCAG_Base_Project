@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.0.25">
-  <POU Name="FB_Server" Id="{968e3b39-64e9-4551-8086-3bb49079ecda}">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.0.36">
+  <POU Name="FB_Server" Id="{968e3b39-64e9-4551-8086-3bb49079ecda}" SpecialFunc="None">
     <Declaration><![CDATA[///#########################################################
 ///FB that handles TCP/IP server and the client connections. The code is based on Beckhoff sample code. However changes and additions have been made to this code for the general purpose EPICS interface.
 /// 
@@ -24,7 +24,7 @@
 
 FUNCTION_BLOCK FB_Server
 VAR
-	sVersion: STRING:='0.9.0';
+	sVersion: STRING:='0.9.1';
 END_VAR
 VAR_INPUT
 	sSrvNetID		: T_AmsNetID	:= '';(* TwinCAT TCP/IP server network address *)
@@ -182,6 +182,5 @@ END_CASE
 
 ]]></ST>
     </Implementation>
-    <ObjectProperties />
   </POU>
 </TcPlcObject>

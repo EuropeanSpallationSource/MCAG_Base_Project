@@ -1,6 +1,21 @@
 ReleaseNotes:
 (This is a very rough overview, the real truth is in "git log")
 
+v0.9.7
+  Important: Change the port number from 200 to 5000 for the testrack
+  and from 5024 to 5000 for the simulator.
+
+  Change the hardware setup, we have now a new motion test crate MCU "1013"
+  Use the encoder attached to the motor, meaning that we now run "closed loop"
+  Change the test suite, can be run against any PV pointing to a motor.
+  Adapt the scripts starting an IOC to fit to the "CCDB and IOC factory".
+  Change the homing to use the low limit switch
+  Fix a glitch in the bBusy when running homing sequence:
+  bBusy went inactive for a short while.
+  Depending on the poller() in EPICS, sometimes MR thougth that the
+  homing was done, but it wasn't.
+
+
 v0.9.6
   Create SolAxis-48-1.cfg, which configures more parameters in the MCU,
     e.g. the homing velocities, to and from the home switch,

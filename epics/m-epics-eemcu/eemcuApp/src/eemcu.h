@@ -63,6 +63,8 @@ public:
   void report(FILE *fp, int level);
   asynStatus move(double position, int relative, double min_velocity, double max_velocity, double acceleration);
   asynStatus moveVelocity(double min_velocity, double max_velocity, double acceleration);
+  asynStatus setPosition(double);
+
   asynStatus home(double min_velocity, double max_velocity, double acceleration, int forwards);
   asynStatus stop(double acceleration);
   void       callParamCallbacksUpdateError();
@@ -82,10 +84,10 @@ private:
   eemcuController *pC_;          /**< Pointer to the asynMotorController to which this axis belongs.
                                    *   Abbreviated because it is used very frequently */
   struct {
+    st_axis_status_type old_st_axis_status;
     double mres;
     double motorHighLimit;
     double motorLowLimit;
-    double oldPosition;
     const char *externalEncoderStr;
     const char *cfgfileStr;
     int axisFlags;

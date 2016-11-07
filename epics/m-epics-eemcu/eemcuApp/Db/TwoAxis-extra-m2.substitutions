@@ -1,6 +1,0 @@
-file "eemcu-extra.template"
-{
-pattern
-{P,      M,    R,   PORT, ADDR, PREC, HOMEPROC}
-{IOC:,   m2, m2-,   MCU1,    2, 3,    3       }
-}

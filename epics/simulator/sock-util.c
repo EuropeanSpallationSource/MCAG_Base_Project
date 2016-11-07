@@ -429,7 +429,7 @@ void send_to_socket(int fd, const char *buf, unsigned len)
 /*****************************************************************************/
 void socket_loop(void)
 {
-  static const char *listen_port_asc = "5024";
+  static const char *listen_port_asc = "5000";
   int listen_socket;
   int accepted_socket;
   int stop_and_exit = 0;
