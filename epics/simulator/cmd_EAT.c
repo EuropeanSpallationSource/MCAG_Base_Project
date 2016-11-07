@@ -45,11 +45,11 @@ static void init_axis(int axis_no)
     return;
   }
   if (!init_done[axis_no]) {
-    double valueLow = -30.0 * ReverseMRES;
-    double valueHigh = 140.0 * ReverseMRES;
+    double valueLow =  0.0 * ReverseMRES;
+    double valueHigh = 170.0 * ReverseMRES;
     hw_motor_init(axis_no);
     setMotorReverseERES(axis_no, MRES/ERES);
-    setMotorParkingPosition(axis_no, (100 + axis_no/10.0) * ReverseMRES); /* steps */
+    setMotorParkingPosition(axis_no, (10 + axis_no/10.0) * ReverseMRES); /* steps */
     setMaxHomeVelocityAbs(axis_no, 5 * ReverseMRES);
     setLowHardLimitPos(axis_no,  valueLow);
     setHighHardLimitPos(axis_no, valueHigh);
