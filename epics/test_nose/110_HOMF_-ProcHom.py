@@ -229,3 +229,10 @@ class Test(unittest.TestCase):
     #    print '%s Home ' % tc_no
     #    homeTheMotor(self, self.m1, tc_no, 6, -1)
 
+    # Need to home with the original homing procedure
+    def test_TC_11191(self):
+        old_ProcHom   = self.pv_ProcHom.get(use_monitor=False)
+        tc_no = "TC-11191"
+        print '%s Home ' % tc_no
+        homeTheMotor(self, self.m1, tc_no, old_ProcHom, 0)
+
