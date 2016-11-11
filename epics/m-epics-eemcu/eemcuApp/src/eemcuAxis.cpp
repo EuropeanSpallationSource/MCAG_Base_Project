@@ -882,6 +882,8 @@ void eemcuAxis::callParamCallbacksUpdateError()
     setStringParam(pC_->eemcuErrMsg_, "ConfigError: AxisID");
   } else if (drvlocal.dirty.motorLimits) {
     setStringParam(pC_->eemcuErrMsg_, "ConfigError: Soft limits");
+  } else if (!drvlocal.homed) {
+    drvlocal.eeAxisError = eeAxisErrorNotHomed;
   }
 
   if (drvlocal.eeAxisError != drvlocal.old_eeAxisError ||
@@ -895,6 +897,9 @@ void eemcuAxis::callParamCallbacksUpdateError()
       break;
     case eeAxisErrorIOCcomError:
       setStringParam(pC_->eemcuErrMsg_, "CommunicationError");
+      break;
+    case eeAxisErrorNotHomed:
+      setStringParam(pC_->eemcuErrMsg_, "Not homed");
       break;
     default:
       ;
@@ -1026,6 +1031,7 @@ asynStatus eemcuAxis::poll(bool *moving)
     goto skip;
   }
   setIntegerParam(pC_->motorStatusHomed_, st_axis_status.bHomed);
+  drvlocal.homed = st_axis_status.bHomed;
   setIntegerParam(pC_->motorStatusCommsError_, 0);
   setIntegerParam(pC_->motorStatusAtHome_, st_axis_status.bHomeSensor);
   setIntegerParam(pC_->motorStatusLowLimit_, !st_axis_status.bLimitBwd);
