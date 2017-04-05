@@ -1,24 +1,23 @@
 #!/bin/sh
 #Shell script to load configuration binaries to TwinCAT MCU controller, make the project to autoboot and finally reboot MCU.
 #The script need the TwinCAT boot folder of the MCU to be shared.
-# Argument 1 = MCU IP ("192.168.88.44")
+# Argument 1 = MCU IP ("192.168.88.60")
 # Argument 2 = TwinCAT source prject binaries folder ("source/ChopperDemo/ChopperDemo/_Boot/TwinCAT RT (x86)")
 # (AMSNetID will be derived from the IP-address by extending it with ".1.1" )
-#or
-# Argument 1 = MCU IP ("192.168.88.44")
-# Argument 2 = MCU AMSNetID ("192.168.88.44.1.1")
-# Argument 3 = TwinCAT source prject binaries folder ("source/ChopperDemo/ChopperDemo/_Boot/TwinCAT RT (x86)")
+# or see the help below
+
 
 ADSStateRelativePath="getADSState/getADSState.bin"
 PlcBootMountFolderBase="plcbootfolder"
+REFSYSTEMIP=192.168.88.60
 
 #check number of arguments atleast two args are needed
 
 if test $# -lt 2; then
   echo >&2 $0 "<IP> [<AMSNetID>] <TwinCatBinaryFolder>"
   echo >&2 example:
-  echo >&2 $0 192.168.88.44 '../../TwinCAT/MCAG_Base_Project/_Boot/TwinCAT\ RT\ \(x64\)/'
-  echo >&2 $0 192.168.88.44 192.168.88.44.1.1 '../../TwinCAT/MCAG_Base_Project/_Boot/TwinCAT\ RT\ \(x64\)/'
+  echo >&2 $0 ${REFSYSTEMIP} '../../TwinCAT/MCAG_Base_Project/_Boot/TwinCAT\ RT\ \(x64\)/'
+  echo >&2 $0 ${REFSYSTEMIP} ${REFSYSTEMIP}.1.1 '../../TwinCAT/MCAG_Base_Project/_Boot/TwinCAT\ RT\ \(x64\)/'
   exit 1
 fi
 
@@ -67,7 +66,7 @@ found=0
 # Maximum 100 tries to find name for new folder
 while [ $count -lt 100 ]; do
   PlcBootMountFolder=$PlcBootMountFolderBase$count
-  if ! test -d "$PlcBootMountFolder" ]; then
+  if ! test -d "$PlcBootMountFolder"; then
     count=99
     found=1
     mkdir $PlcBootMountFolder || {
