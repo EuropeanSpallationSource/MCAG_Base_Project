@@ -9,10 +9,25 @@ A general overview can be found here:
 
 https://indico.fnal.gov/getFile.py/access?contribId=63&sessionId=12&resId=1&materialId=slides&confId=9718
 
-The TwinCAT 3 project is under TwinCAT/,
+This Git is today somewhat obsolete. To increases the maintainability,
+this Git is split into different Gits:
 
-the EPICS model 3 motor driver under  epics/m-epics-TwinCATmotor/,
+- The TwinCAT part is moved into an own Git with submodules.
 
-a motor simulator under epics/simulator/,
+git clone --recursive https://bitbucket.org/europeanspallationsource/tc_generic_structure.git
 
-and a python test script under epics/simulator/testScripts
+- The EPICS model 3 motor driver is found here:
+
+git clone https://bitbucket.org/europeanspallationsource/m-epics-ethercatmc.git
+- You may want to use an improved version of the motorRecord:
+
+git clone -b ess-6.9.x https://bitbucket.org/europeanspallationsource/m-epics-motor.git
+
+There will be some more information, a kind of wiki.
+This work is ongoing, so please contact us.
+
+If you want to see an old version, just use
+
+git checkout HEAD^
+
+  
